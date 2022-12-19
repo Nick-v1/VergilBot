@@ -5,10 +5,14 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Discord;
+using Discord.API;
 using Discord.Commands;
+using Discord.Net;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
+using VergilBot.Modules;
 
 class Program
 {
@@ -25,7 +29,7 @@ class Program
         builder = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddUserSecrets<Program>().Build();
-
+       
        
         new Program().MainAsync().GetAwaiter().GetResult(); 
     
@@ -71,7 +75,57 @@ class Program
     public async Task InstallCommandsAsync()
     {
         _client.MessageReceived += HandleCommandAsync;
+        _client.Ready += ClientReaderSlashCommands;
+        _client.Ready += ClientStatus;
+        _client.SlashCommandExecuted += SlashCommandHandler;
         await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
+    }
+
+    private async Task ClientStatus()
+    {
+        await _client.SetStatusAsync(UserStatus.Idle);
+
+        
+    }
+
+    /// <summary>
+    /// Slash command handler here
+    /// </summary>
+    /// <param name="command"></param>
+    /// <returns></returns>
+    private async Task SlashCommandHandler(SocketSlashCommand command)
+    {
+        if (command.Data.Name.Equals("quote"))
+        {
+            var vergilquote = new VergilQuotes();
+            var quote = vergilquote.getQuote();
+            await command.RespondAsync(quote);
+            return;
+        }
+        await command.RespondAsync($"You executed {command.Data.Name}");
+    }
+
+    /// <summary>
+    /// Slash commands here
+    /// </summary>
+    /// <returns></returns>
+    private async Task ClientReaderSlashCommands()
+    {
+        var guild = _client.GetGuild(605772836660969493);
+
+        var globalCommand = new SlashCommandBuilder();
+        globalCommand.WithName("quote");
+        globalCommand.WithDescription("Sends a random Vergil quote");
+
+        try
+        {
+            await _client.CreateGlobalApplicationCommandAsync(globalCommand.Build());
+        }
+        catch (HttpException e)
+        {
+            var json = JsonConvert.SerializeObject(e.Errors, Formatting.Indented);
+            Console.WriteLine(json);
+        }
     }
 
     public async Task HandleCommandAsync(SocketMessage messageParam)
