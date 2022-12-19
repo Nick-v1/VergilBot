@@ -12,6 +12,7 @@ using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
+using VergilBot.Models.Entities;
 using VergilBot.Modules;
 
 class Program
@@ -85,7 +86,7 @@ class Program
     {
         await _client.SetStatusAsync(UserStatus.Idle);
 
-        
+        await _client.SetGameAsync("I AM THE STORM THAT IS APPROACHING", "", ActivityType.Listening);
     }
 
     /// <summary>
@@ -102,7 +103,41 @@ class Program
             await command.RespondAsync(quote);
             return;
         }
-        await command.RespondAsync($"You executed {command.Data.Name}");
+        else if (command.Data.Name.Equals("weather"))
+        {
+            var city = command.Data.Options.First().Value.ToString();
+
+            try
+            {
+                var HttpClientforWeather = new HttpClient();
+                var responseString = await HttpClientforWeather.GetStringAsync($"https://goweather.herokuapp.com/weather/{city}");
+
+                var weatherForecast = Weather.FromJson(responseString);
+                //var nextDays = weatherForecast.Forecast;
+
+
+                await command.RespondAsync($"Weather in {char.ToUpper(city[0]) + city.Substring(1)}:\nTemperature: {weatherForecast.Temperature}, wind: {weatherForecast.Wind}, description: {weatherForecast.Description}\n");
+
+            }
+            catch (HttpRequestException e)
+            {
+
+                switch (e.StatusCode)
+                {
+                    case System.Net.HttpStatusCode.ServiceUnavailable:
+                        await command.RespondAsync("503 Service Unavailable");
+                        break;
+                    default:
+                        await command.RespondAsync($"{e.Message}");
+                        break;
+                }
+
+            }
+            return;
+            
+        }
+
+        
     }
 
     /// <summary>
@@ -117,9 +152,15 @@ class Program
         globalCommand.WithName("quote");
         globalCommand.WithDescription("Sends a random Vergil quote");
 
+        var globalCommand1 = new SlashCommandBuilder()
+            .WithName("weather")
+            .WithDescription("Get the weather in your city")
+            .AddOption("city", ApplicationCommandOptionType.String, "The city you want the weather for");
+
         try
         {
             await _client.CreateGlobalApplicationCommandAsync(globalCommand.Build());
+            await _client.CreateGlobalApplicationCommandAsync(globalCommand1.Build());
         }
         catch (HttpException e)
         {
