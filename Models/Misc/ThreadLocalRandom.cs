@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace VergilBot.Modules
+namespace VergilBot.Models.Misc
 {
     public class ThreadLocalRandom
     {
@@ -32,7 +32,7 @@ namespace VergilBot.Modules
         public static Random Instance { get { return threadRandom.Value; } }
 
         public static int Next(int minValue, int maxValue)
-        { 
+        {
             return Instance.Next(minValue, maxValue);
         }
     }

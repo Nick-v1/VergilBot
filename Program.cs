@@ -8,11 +8,13 @@ using Discord;
 using Discord.API;
 using Discord.Commands;
 using Discord.Net;
+using Discord.Rest;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using VergilBot.Models.Entities;
+using VergilBot.Models.Misc;
 using VergilBot.Modules;
 
 class Program
@@ -84,7 +86,7 @@ class Program
 
     private async Task ClientStatus()
     {
-        await _client.SetStatusAsync(UserStatus.Idle);
+        await _client.SetStatusAsync(UserStatus.Online);
 
         await _client.SetGameAsync("I AM THE STORM THAT IS APPROACHING", "", ActivityType.Listening);
     }
@@ -115,8 +117,11 @@ class Program
                 var weatherForecast = Weather.FromJson(responseString);
                 //var nextDays = weatherForecast.Forecast;
 
+                var emojify = new WeatherEmojify(weatherForecast, city);
+                var resultstring = emojify.getEmojify();
 
-                await command.RespondAsync($"Weather in {char.ToUpper(city[0]) + city.Substring(1)}:\nTemperature: {weatherForecast.Temperature}, wind: {weatherForecast.Wind}, description: {weatherForecast.Description}\n");
+                HttpClientforWeather.Dispose();
+                await command.RespondAsync(resultstring);
 
             }
             catch (HttpRequestException e)
@@ -127,6 +132,9 @@ class Program
                     case System.Net.HttpStatusCode.ServiceUnavailable:
                         await command.RespondAsync("503 Service Unavailable");
                         break;
+                    case System.Net.HttpStatusCode.NotFound:
+                        await command.RespondAsync($"City/Country/Area Not Found");
+                        break;
                     default:
                         await command.RespondAsync($"{e.Message}");
                         break;
@@ -134,14 +142,38 @@ class Program
 
             }
             return;
-            
-        }
 
+        }
+        else if (command.Data.Name.Equals("help"))
+        {
+            var e = _client.GetGlobalApplicationCommandsAsync().Result;
+            var normalcommands = _commands.Commands;
+            StringBuilder s = new StringBuilder();
+            var slashoptionsElement = "";
+
+            s.AppendLine("Slash Commands:\n");
+            foreach ( var c in e) 
+            {
+                if (c.Options.Count > 0)
+                {
+                    var slashoptions = c.Options.ElementAt(0);
+                    slashoptionsElement = slashoptions.Name;
+                    s.AppendLine($"Usage: /**{c.Name}** _{slashoptionsElement}_. {c.Description}.");
+                    continue;
+                }
+                s.AppendLine($"Usage: /**{c.Name}**. {c.Description}.");
+            }
+
+            s.AppendLine("\n_Prefix commands not showing. To be rendered obsolete_");
+
+            await command.RespondAsync(s.ToString());
+        }
         
     }
 
     /// <summary>
-    /// Slash commands here
+    /// Slash commands creation here
+    /// Runs only once
     /// </summary>
     /// <returns></returns>
     private async Task ClientReaderSlashCommands()
@@ -157,10 +189,16 @@ class Program
             .WithDescription("Get the weather in your city")
             .AddOption("city", ApplicationCommandOptionType.String, "The city you want the weather for");
 
+        var globalCommandHelp = new SlashCommandBuilder()
+            .WithName("help")
+            .WithDescription("Shows available commands");
+
+
         try
         {
             await _client.CreateGlobalApplicationCommandAsync(globalCommand.Build());
             await _client.CreateGlobalApplicationCommandAsync(globalCommand1.Build());
+            await _client.CreateGlobalApplicationCommandAsync(globalCommandHelp.Build());
         }
         catch (HttpException e)
         {

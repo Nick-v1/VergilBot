@@ -5,7 +5,7 @@ using Discord.WebSocket;
 using System.Reactive.Concurrency;
 using System.Text;
 
-namespace Vergil
+namespace VergilBot.Modules
 {
     public class Commands : ModuleBase<SocketCommandContext>
     {
@@ -26,6 +26,38 @@ namespace Vergil
             var builder = new ComponentBuilder().WithButton(buttonstr, "custom-button");
             var s = new SelectMenuOptionBuilder();
             await ReplyAsync("\t", components: builder.Build());
+        }
+
+        /// <summary>
+        /// Code to delete a specific prebuild slash command
+        /// </summary>
+        /// <returns></returns>
+        [RequireOwner]
+        [Command("deletetestcommand")]
+        public async Task DeleteGlobalCommands()
+        {
+            var s = Context.Client.GetGlobalApplicationCommandsAsync().Result;
+            
+            await ReplyAsync("Element being deleted: " + s.ElementAt(0).Name);
+            
+            await s.ElementAt(0).DeleteAsync();
+
+            await ReplyAsync(s.Count.ToString());
+        }
+
+        [Command("findtestcommands")]
+        public async Task FindTestCommands()
+        {
+            var s = Context.Client.GetGlobalApplicationCommandsAsync().Result;
+            var s1 = "";
+
+
+            foreach (var item in s)
+            {
+                s1 += $"{item.Name},  {item.Description}\n";
+            }
+
+            await ReplyAsync(s1);
         }
     }
 
@@ -63,6 +95,19 @@ namespace Vergil
             var userInfo = Context.Message.Author;
 
             await userInfo.SendMessageAsync("hi ");
+        }
+
+
+        [Command("send")]
+        public async Task SendMessageToUser(ulong userid, string messageToSend)
+        {
+            var user = Context.User;
+            var usertarget = Context.Client.GetUser(userid);
+            
+            await usertarget.SendMessageAsync($"Hi {usertarget.Username}.\n" +
+                $"{user.Username} has messaged you the following: {messageToSend}");
+
+            await ReplyAsync($"Send Message to: {usertarget.Username}");
         }
 
         [Command("myinfo")]

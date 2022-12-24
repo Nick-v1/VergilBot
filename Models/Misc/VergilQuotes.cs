@@ -5,13 +5,14 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace VergilBot.Modules
+namespace VergilBot.Models.Misc
 {
     public class VergilQuotes
     {
         private readonly List<string> _quotes = new List<string>();
 
-        public VergilQuotes(){
+        public VergilQuotes()
+        {
             _quotes.Add("Foolishness, Dante. Foolishness. Might controls everything. And without strength you can not protect anything. Let alone yourself.");
             _quotes.Add("Why isn't this working? Is there something missing? Must more blood be shed?");
             _quotes.Add("Insane buffoon! I don't know where you came from but you don't belong here. Now leave!");
@@ -52,16 +53,16 @@ namespace VergilBot.Modules
             _quotes.Add("Not bad!");
             _quotes.Add("Such a fool!");
 
-            var s = new string[] { "Placeholder for new quotes", "new quote 1"};
+            var s = new string[] { "Placeholder for new quotes", "new quote 1" };
         }
 
         public string getQuote()
         {
             //generating true randomness
             var ran = ThreadLocalRandom.Next(0, _quotes.Count + 1);
-            
+
             return _quotes[ran];
         }
-        
+
     }
 }
