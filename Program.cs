@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Json;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -80,8 +81,20 @@ class Program
         _client.MessageReceived += HandleCommandAsync;
         _client.Ready += ClientReaderSlashCommands;
         _client.Ready += ClientStatus;
+        _client.UserJoined += UserJoin;
         _client.SlashCommandExecuted += SlashCommandHandler;
         await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
+    }
+
+    private async Task UserJoin(SocketGuildUser user)
+    {
+        await user.AddRoleAsync(766202794864017428);
+        
+        var welcomechannel = _client.GetChannel(765952959581257758) as ISocketMessageChannel;
+        var rules = _client.GetChannel(1048901442397818901) as ISocketMessageChannel;
+
+
+        await welcomechannel.SendMessageAsync($"Welcome to the server, {user.Mention} !\nMake sure to check the <#{rules.Id}> ~~and pick a colour~~");
     }
 
     private async Task ClientStatus()
@@ -89,6 +102,7 @@ class Program
         await _client.SetStatusAsync(UserStatus.Online);
 
         await _client.SetGameAsync("I AM THE STORM THAT IS APPROACHING", "", ActivityType.Listening);
+
     }
 
     /// <summary>
@@ -126,19 +140,19 @@ class Program
             }
             catch (HttpRequestException e)
             {
-
-                switch (e.StatusCode)
+                await command.RespondAsync($"{e.Message}");
+                /*switch (e.StatusCode)
                 {
                     case System.Net.HttpStatusCode.ServiceUnavailable:
                         await command.RespondAsync("503 Service Unavailable");
                         break;
                     case System.Net.HttpStatusCode.NotFound:
-                        await command.RespondAsync($"City/Country/Area Not Found");
+                        await command.RespondAsync($"Not Found");
                         break;
                     default:
                         await command.RespondAsync($"{e.Message}");
                         break;
-                }
+                }*/
 
             }
             return;
@@ -152,7 +166,7 @@ class Program
             var slashoptionsElement = "";
 
             s.AppendLine("Slash Commands:\n");
-            foreach ( var c in e) 
+            foreach (var c in e)
             {
                 if (c.Options.Count > 0)
                 {
@@ -168,6 +182,40 @@ class Program
 
             await command.RespondAsync(s.ToString());
         }
+        else if (command.Data.Name.Equals("banmepls"))
+        {
+            var e = command.User as IUser;
+            var guild = _client.GetGuild(command.GuildId.Value);
+            var channel = command.Channel;
+
+
+            var EmbedBuilderLog = new EmbedBuilder()
+                .WithDescription($"User: {e.Username} just banned themselves! <:peepoSad:648843706337722402> ")
+                .WithColor(Color.Red);
+            Embed embedLog = EmbedBuilderLog.Build();
+
+            await guild.AddBanAsync(e, 1, "IM LEAVING :RAGEY:");
+            await channel.SendMessageAsync($"{e.Username} just committed Sudoku! <:peepoSad:648843706337722402> ", embed: embedLog);
+            await guild.RemoveBanAsync(e);
+        }
+        else if (command.Data.Name.Equals("leledometro"))
+        {
+            if (command.User.Id.Equals(415208824446648320))
+            {
+                var freedomDay = new DateTime(2023, 06, 08);
+                var today = DateTime.Today;
+
+                TimeSpan days = freedomDay - today;
+                await command.RespondAsync($"Your mandatory chore ends in: {(days.Days).ToString()} days.");
+            }
+            else
+                await command.RespondAsync("Not allowed");
+        }
+        else if (command.Data.Name.Equals("reddit"))
+        {
+            await command.RespondAsync("You executed reddit");
+        }
+        
         
     }
 
@@ -178,7 +226,7 @@ class Program
     /// <returns></returns>
     private async Task ClientReaderSlashCommands()
     {
-        var guild = _client.GetGuild(605772836660969493);
+        var guild = _client.GetGuild(605772836660969493); //my guild
 
         var globalCommand = new SlashCommandBuilder();
         globalCommand.WithName("quote");
@@ -193,12 +241,26 @@ class Program
             .WithName("help")
             .WithDescription("Shows available commands");
 
+        var globalCommandBanYourself = new SlashCommandBuilder()
+            .WithName("banmepls")
+            .WithDescription("Use this to ban yourself from a server. Removes the ban shortly after.");
+
+        var localCommandLeledometro = new SlashCommandBuilder()
+            .WithName("leledometro")
+            .WithDescription("Shows the remaining days of your military service");
+
+        var globalReddit = new SlashCommandBuilder()
+            .WithName("reddit")
+            .WithDescription("Shows a random reddit post");
 
         try
         {
             await _client.CreateGlobalApplicationCommandAsync(globalCommand.Build());
             await _client.CreateGlobalApplicationCommandAsync(globalCommand1.Build());
             await _client.CreateGlobalApplicationCommandAsync(globalCommandHelp.Build());
+            await _client.CreateGlobalApplicationCommandAsync(globalCommandBanYourself.Build());
+            await guild.CreateApplicationCommandAsync(localCommandLeledometro.Build());
+            await _client.CreateGlobalApplicationCommandAsync(globalReddit.Build());
         }
         catch (HttpException e)
         {
