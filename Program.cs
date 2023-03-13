@@ -13,7 +13,9 @@ using Discord.Rest;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Win32;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using VergilBot.Models.Entities;
 using VergilBot.Models.Misc;
 using VergilBot.Modules;
@@ -26,8 +28,9 @@ class Program
     private DiscordSocketConfig _config;
     private IServiceProvider _services;
     private static IConfigurationRoot builder;
+    
 
-    private static void Main(string[] args) 
+    public static void Main(string[] args) 
     {
         //builder to access client secrets
         builder = new ConfigurationBuilder()
@@ -37,6 +40,11 @@ class Program
        
         new Program().MainAsync().GetAwaiter().GetResult(); 
     
+    }
+
+    public static IConfigurationRoot GetConfiguration()
+    {
+        return builder;
     }
 
 
@@ -50,7 +58,7 @@ class Program
             .AddSingleton<DiscordSocketClient>();
 
         _services = _collection.BuildServiceProvider();
-
+        
         _commands = new CommandService();
 
         _client = new DiscordSocketClient(_config);
@@ -84,6 +92,7 @@ class Program
         _client.UserJoined += UserJoin;
         _client.SlashCommandExecuted += SlashCommandHandler;
         await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
+        
     }
 
     private async Task UserJoin(SocketGuildUser user)
@@ -213,7 +222,46 @@ class Program
         }
         else if (command.Data.Name.Equals("reddit"))
         {
-            await command.RespondAsync("You executed reddit");
+
+            var subreddit = command.Data.Options.First().Value.ToString();
+            IUser botUser = _client.CurrentUser;
+
+            Reddit reddit = new Reddit(subreddit, botUser);
+
+            var info = await reddit.sendRequest();
+
+            await command.RespondAsync(embed: info.Build());
+
+
+
+        }
+        else if (command.Data.Name.Equals("register"))
+        {
+            var s = new elephantSql();
+            IUser user = command.User;
+
+            var result = s.Register(user);
+
+            await command.RespondAsync(result);
+        }
+        else if (command.Data.Name.Equals("deposit"))
+        {
+            var s = new elephantSql();
+            IUser user = command.User;
+
+            double fundsToAdd = (double)command.Data.Options.First().Value;
+
+            var result = s.transact(user.Id.ToString(), command.CommandName, (decimal)fundsToAdd);
+
+            var embedbalance = new EmbedBuilder()
+                .WithTitle("Successfully added!")
+                .WithDescription($"You have added: {fundsToAdd} bloodstones.\n" +
+                $"Your balance: {result} bloodstones.")
+                .WithColor(Color.Teal)
+                .Build();
+
+            await command.RespondAsync(embed: embedbalance);
+            
         }
         
         
@@ -251,8 +299,25 @@ class Program
 
         var globalReddit = new SlashCommandBuilder()
             .WithName("reddit")
-            .WithDescription("Shows a random reddit post");
+            .WithDescription("Shows a random post from the chosen subreddit")
+            .AddOption("subreddit", ApplicationCommandOptionType.String, "The subreddit you want", true);
 
+        var deposit = new SlashCommandBuilder()
+            .WithName("deposit")
+            .WithDescription("Add funds to your account (alpha version)")
+            .AddOption(new SlashCommandOptionBuilder()
+                            .WithName("funds")
+                            .WithDescription("Options")
+                            .WithRequired(true)
+                            .AddChoice("Add 50", 50.00)
+                            .AddChoice("Add 200", 200.00)
+                            .AddChoice("Add 1000", 1000.00)
+                            .AddChoice("Add 10000", 10000.00)
+                            .WithType(ApplicationCommandOptionType.Number));
+
+        var registerCommand = new SlashCommandBuilder()
+            .WithName("register")
+            .WithDescription("register to the app");
         try
         {
             await _client.CreateGlobalApplicationCommandAsync(globalCommand.Build());
@@ -261,6 +326,8 @@ class Program
             await _client.CreateGlobalApplicationCommandAsync(globalCommandBanYourself.Build());
             await guild.CreateApplicationCommandAsync(localCommandLeledometro.Build());
             await _client.CreateGlobalApplicationCommandAsync(globalReddit.Build());
+            await _client.CreateGlobalApplicationCommandAsync(deposit.Build());
+            await _client.CreateGlobalApplicationCommandAsync(registerCommand.Build());
         }
         catch (HttpException e)
         {
