@@ -16,8 +16,8 @@ namespace VergilBot.Modules
         private double userBalance;
         const double maxChance = 100.0;
         const double minChance = 1.0;
-        const double defaultChance = 50.0;
-        const double defaultMultiplier = 2.0;
+        //const double defaultChance = 50.0;
+        //const double defaultMultiplier = 2.0;
 
         public GambaModule(double bet, IUser user)
         {
@@ -58,13 +58,15 @@ namespace VergilBot.Modules
                 bool win = roll <= chance;
                 double payout = 0.0;
 
-                embed.WithFooter($"Roll above: {roll.ToString("0.00")} to win\n" +
-                    $"Your chances were: {chance.ToString("0.00")}% of winning");
+                embed.WithFooter($"Roll above: {roll.ToString("0.00")}% to win\n" +
+                    $"Your chances: {chance.ToString("0.00")}% of winning", user.GetAvatarUrl());
+
+                // calculates the correct winning multiplier
+                double multiplier = minChance / (chance / maxChance);
 
                 if (win)
-                {
-                    // calculates the correct winning multiplier
-                    double multiplier = minChance / (chance / maxChance);
+                { 
+                    
                     payout = bet * multiplier;
                     var payoutAfterBet = payout - bet;
 
@@ -89,7 +91,8 @@ namespace VergilBot.Modules
                     sql.transact(user.Id.ToString(), "lost bet", bet);
                     var newbalance = sql.CheckBalance(user.Id.ToString());
 
-                    embed.WithDescription($"You have lost {bet} bloodstones. Your new balance is: {newbalance}.\n")
+                    embed.WithDescription($"You have lost {bet} bloodstones. Your new balance is: {newbalance}.\n" +
+                        $"Potential multiplier was: {multiplier.ToString("0.00")}")
                         .WithColor(Color.Red)
                         .WithTitle("Lose");
 
