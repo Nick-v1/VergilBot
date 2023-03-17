@@ -179,6 +179,10 @@ namespace VergilBot.Modules
             else if (command.Data.Name.Equals("dice"))
             {
                 var s = command.Data.Options.FirstOrDefault();
+                //var chance = (double) command.Data.Options.ElementAtOrDefault(1).Value;
+
+                //Console.WriteLine("Chance is:" +chance);
+
                 var user = command.User;
                 var bet = (double)s.Value;
 
@@ -249,9 +253,19 @@ namespace VergilBot.Modules
                 .WithName("register")
                 .WithDescription("register to the app");
 
+            /*var diceCommand = new SlashCommandBuilder()
+                .WithName("dice")
+                .WithDescription("Roll the dice. Choose your chances!")
+                .AddOption("bet", ApplicationCommandOptionType.Number, "your bet size", true)
+                .AddOption(new SlashCommandOptionBuilder()
+                                .WithName("chances")
+                                .WithDescription("pick your chances!")
+                                .WithRequired(true)
+                                .WithType(ApplicationCommandOptionType.Number));*/
+
             var diceCommand = new SlashCommandBuilder()
                 .WithName("dice")
-                .WithDescription("Roll the dice. Roll above 50 to win 2 times your bet.")
+                .WithDescription("Roll the dice. Your chances are picked randomly!")
                 .AddOption("bet", ApplicationCommandOptionType.Number, "your bet size", true);
 
             var balanceCommand = new SlashCommandBuilder()

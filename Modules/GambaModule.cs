@@ -12,13 +12,18 @@ namespace VergilBot.Modules
     {
         private double bet;
         private IUser user;
-       
+        private double chance;
         private double userBalance;
-       
+        const double maxChance = 100.0;
+        const double minChance = 1.0;
+        const double defaultChance = 50.0;
+        const double defaultMultiplier = 2.0;
+
         public GambaModule(double bet, IUser user)
         {
             this.bet = bet;
             this.user = user;
+            this.chance = ThreadLocalRandom.NewRandom().NextDouble() * maxChance;
         }
 
         public EmbedBuilder StartGame()
@@ -30,9 +35,15 @@ namespace VergilBot.Modules
             if (userBalance.Equals(0.123456789))   // if balance then user doesn't exist in the db
                 return embed.WithDescription("User not registered. Use /register to sign up!");
 
+            
             if (userBalance <= 0 )
             {
                 return embed.WithDescription("You have no balance to play").WithColor(Color.Gold);
+            }
+
+            if (chance < minChance || chance > maxChance)
+            {
+                return embed.WithDescription("Invalid winning chance! Please enter a value between 1 and 100.");
             }
 
             if (userBalance < bet)
@@ -42,18 +53,30 @@ namespace VergilBot.Modules
             else
             {
                 var random = ThreadLocalRandom.NewRandom();
-                var randomNumberChoosen = random.Next(0, 100);
+                var roll = random.NextDouble() * maxChance;
 
-                embed.WithFooter($"RNG Number choosen: {randomNumberChoosen}");
+                bool win = roll <= chance;
+                double payout = 0.0;
 
-                if (randomNumberChoosen >= 50)
+                embed.WithFooter($"Roll above: {roll.ToString("0.00")} to win\n" +
+                    $"Your chances were: {chance.ToString("0.00")}% of winning");
+
+                if (win)
                 {
+                    // calculates the correct winning multiplier
+                    double multiplier = minChance / (chance / maxChance);
+                    payout = bet * multiplier;
+                    var payoutAfterBet = payout - bet;
+
+                    Console.WriteLine("You rolled a {0:0.00} and the winning chance was {1:0.00}%", roll, chance);
+
                     var sql = new elephantSql();
-                    Console.WriteLine($"\n{user.Username}#{user.Discriminator} played with {bet} and won {bet * 2} bloodstones!");
-                    sql.transact(user.Id.ToString(), "won bet", (bet * 2) - bet);
+                    Console.WriteLine($"\n{user.Username}#{user.Discriminator} played with {bet} and won {payout} bloodstones!");
+                    sql.transact(user.Id.ToString(), "won bet", payoutAfterBet);
                     var newbalance = sql.CheckBalance(user.Id.ToString());
 
-                    embed.WithDescription($"You have won {(bet * 2)} bloodstones! (Profit on win: {bet * 2 - bet}). Your new balance is: {newbalance}.")
+                    embed.WithDescription($"You have won {(payout).ToString("0.00")} bloodstones! (Profit on win: {payoutAfterBet.ToString("0.00")}).\n" +
+                        $"Winning multiplier: {multiplier.ToString("0.00")}")
                         .WithColor(Color.Green)
                         .WithTitle("Win!");
 
@@ -66,7 +89,7 @@ namespace VergilBot.Modules
                     sql.transact(user.Id.ToString(), "lost bet", bet);
                     var newbalance = sql.CheckBalance(user.Id.ToString());
 
-                    embed.WithDescription($"You have lost {bet} bloodstones. Your new balance is: {newbalance}.")
+                    embed.WithDescription($"You have lost {bet} bloodstones. Your new balance is: {newbalance}.\n")
                         .WithColor(Color.Red)
                         .WithTitle("Lose");
 
