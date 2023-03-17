@@ -15,7 +15,7 @@ namespace VergilBot.Modules
         
         public elephantSql() {}
 
-        public decimal transact(string discord_id, string typeOfTransaction, decimal balance) 
+        public void transact(string discord_id, string typeOfTransaction, double balance) 
         {
             var connectionString = Get();
             
@@ -41,7 +41,7 @@ namespace VergilBot.Modules
                         {
                             if (typeOfTransaction.Equals("deposit"))
                             {
-                                var balanceOnDB = (decimal)dataTable.Rows[0]["balance"];
+                                var balanceOnDB = CheckBalance(discord_id);
                                 Console.WriteLine("Account balance: {0:C}", balanceOnDB);
                                 Console.WriteLine("Requested balance to add: {0:C}\n", balance);
 
@@ -52,7 +52,33 @@ namespace VergilBot.Modules
                                 updateCommand.Parameters.AddWithValue("@id", discord_id);
 
                                 var rowsUpdated = updateCommand.ExecuteNonQuery();
-                                return newBalance;
+
+                            }
+                            else if (typeOfTransaction.Equals("withdrawal"))
+                            {
+                                new NotImplementedException();
+                            }
+                            else if (typeOfTransaction.Equals("won bet"))
+                            {
+                                var newBalance = CheckBalance(discord_id) + balance;
+
+                                var sql = "UPDATE user_accounts SET balance = @balance WHERE discord_account_id = @id";
+                                using var updateCommand = new NpgsqlCommand(sql, connection);
+                                updateCommand.Parameters.AddWithValue("id", discord_id);
+                                updateCommand.Parameters.AddWithValue("balance", newBalance);
+                                updateCommand.ExecuteNonQuery();
+
+                            }
+                            else if (typeOfTransaction.Equals("lost bet"))
+                            {
+                                var newBalance = CheckBalance(discord_id) - balance;
+
+                                var sql = "UPDATE user_accounts SET balance = @balance WHERE discord_account_id = @id";
+                                using var updateCommand = new NpgsqlCommand(sql, connection);
+                                updateCommand.Parameters.AddWithValue("id", discord_id);
+                                updateCommand.Parameters.AddWithValue("balance", newBalance);
+                                updateCommand.ExecuteNonQuery();
+
                             }
                         }
                         else
@@ -67,11 +93,7 @@ namespace VergilBot.Modules
                     }
                 }
 
-
-                connection.Close();
             }
-            return 0;
-            
         }
 
         public string Register(IUser user) {
@@ -93,7 +115,6 @@ namespace VergilBot.Modules
 
                 var rowsAffected = cmd.ExecuteNonQuery();
 
-                conn.Close();
                 return "Successfully registered!";
             }
             catch (PostgresException e)
@@ -106,10 +127,37 @@ namespace VergilBot.Modules
             return "Unknown error";
         }
 
-        private void Deposit()
-        { 
-        
+        public double CheckBalance(string discordID)
+        {
+            var connString = Get();
+
+            try {
+                using var conn = new NpgsqlConnection(connString);
+
+                conn.Open();
+
+                var sql = "SELECT balance FROM user_accounts WHERE discord_account_id = @discordID";
+
+                using var cmd = new NpgsqlCommand(sql, conn);
+
+                cmd.Parameters.AddWithValue("discordID", discordID);
+
+                using var reader = cmd.ExecuteReader();
+
+                if (reader.Read())
+                {
+                    var balance = (double)reader.GetDecimal(0);
+                    return balance;
+                }
+                else
+                    conn.Close();
+            }
+            catch (Exception e) { }
+
+            return 0.123456789d;
         }
+
+
 
         private static string Get() 
         {

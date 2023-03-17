@@ -46,10 +46,12 @@ namespace VergilBot.Modules
 
                     // Get the title and author of the post
                     string title = post["data"]["title"].ToString();
+
+                    
                     string author = post["data"]["author"].ToString();
                     string subreddit_name_prefixed = post["data"]["subreddit_name_prefixed"].ToString();
                     string permalink = post["data"]["permalink"].ToString();
-                    string redditPostUrl = $"https://www.reddit.com/{permalink}";
+                    string redditPostUrl = $"https://www.reddit.com{permalink}";
                     string bodyText = post["data"]["selftext"].ToString();
                     string urlPost = (string)post["data"]["url"];
 
@@ -66,11 +68,12 @@ namespace VergilBot.Modules
                     embed
                         .WithTitle(title)
                         .WithColor(Color.Orange)
-                        .WithFooter($"from: {subreddit_name_prefixed} by {author}\n" +
-                        $"{botUser.Username}#{botUser.Discriminator}", botUser.GetAvatarUrl())
+                        .WithFooter($"from: {subreddit_name_prefixed}", botUser.GetAvatarUrl())
                         .WithCurrentTimestamp()
-                        .WithUrl(redditPostUrl);
+                        .WithUrl(redditPostUrl)
+                        .WithAuthor(author, iconUrl: "https://icons.iconarchive.com/icons/uiconstock/socialmedia/256/Reddit-icon.png");
 
+                    
 
                     if (imageOrGifOrVideo != null)
                     {

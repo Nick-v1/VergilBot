@@ -163,17 +163,42 @@ namespace VergilBot.Modules
 
                 double fundsToAdd = (double)command.Data.Options.First().Value;
 
-                var result = s.transact(user.Id.ToString(), command.CommandName, (decimal)fundsToAdd);
+                s.transact(user.Id.ToString(), command.CommandName, fundsToAdd);
+                var balance = s.CheckBalance(user.Id.ToString());
 
                 var embedbalance = new EmbedBuilder()
                     .WithTitle("Successfully added!")
                     .WithDescription($"You have added: {fundsToAdd} bloodstones.\n" +
-                    $"Your balance: {result} bloodstones.")
+                    $"Your balance: {balance} bloodstones.")
                     .WithColor(Color.Teal)
                     .Build();
 
                 await command.RespondAsync(embed: embedbalance);
 
+            }
+            else if (command.Data.Name.Equals("dice"))
+            {
+                var s = command.Data.Options.FirstOrDefault();
+                var user = command.User;
+                var bet = (double)s.Value;
+
+                var gamba = new GambaModule(bet, user);
+                var result = gamba.StartGame();
+
+                
+
+                await command.RespondAsync(embed: result.Build());
+            }
+            else if (command.CommandName.Equals("balance"))
+            {
+                var sql = new elephantSql();
+                var userbalance = sql.CheckBalance(command.User.Id.ToString());
+
+                EmbedBuilder embed = new EmbedBuilder()
+                    .WithAuthor ($"Your balance is {userbalance} bloostones.", command.User.GetAvatarUrl())
+                    .WithColor(Color.DarkTeal);
+
+                await command.RespondAsync(embed: embed.Build());
             }
         }
 
@@ -224,6 +249,15 @@ namespace VergilBot.Modules
                 .WithName("register")
                 .WithDescription("register to the app");
 
+            var diceCommand = new SlashCommandBuilder()
+                .WithName("dice")
+                .WithDescription("Roll the dice. Roll above 50 to win 2 times your bet.")
+                .AddOption("bet", ApplicationCommandOptionType.Number, "your bet size", true);
+
+            var balanceCommand = new SlashCommandBuilder()
+                .WithName("balance")
+                .WithDescription("Show your balance!");
+
             
             try
             {
@@ -235,6 +269,8 @@ namespace VergilBot.Modules
                 await _client.CreateGlobalApplicationCommandAsync(globalReddit.Build());
                 await _client.CreateGlobalApplicationCommandAsync(deposit.Build());
                 await _client.CreateGlobalApplicationCommandAsync(registerCommand.Build());
+                await _client.CreateGlobalApplicationCommandAsync(diceCommand.Build());
+                await _client.CreateGlobalApplicationCommandAsync(balanceCommand.Build());
             }
             catch (HttpException e)
             {
