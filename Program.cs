@@ -47,9 +47,6 @@ class Program
         _slashCommands = new slashCommands(_client, _commands);
 
         
-        var ClientLogger = new ClientLogger();
-        _client.Log += ClientLogger.ClientLog;
-
         //use builder to get discord token;
         string token = configurationRoot.GetSection("DISCORD_TOKEN").Value;
         
@@ -66,36 +63,23 @@ class Program
     public async Task InstallCommandsAsync()
     {
         _client.MessageReceived += HandleCommandAsync;
-        //_client.Ready += ClientReaderSlashCommands; //added to its own class
-        //_client.SlashCommandExecuted += SlashCommandHandler; //added to its own class
-        _client.Ready += ClientStatus;
-        _client.UserJoined += UserJoin;
         
+        _client.Ready += new ClientStatus(_client).UpdateStatus;
+
+        UserHandler uh = new UserHandler(_client);
+
+        _client.UserJoined += uh.UserJoin;
+
+        _client.UserLeft += uh.UserLeft;
+
+        _client.Log += new ClientLogger().ClientLog;
+
         await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
 
         await _slashCommands.InstallSlashCommandsAsync(); //slashCommands.cs handles commands
     }
 
-    private async Task UserJoin(SocketGuildUser user)
-    {
-        await user.AddRoleAsync(766202794864017428);
-        
-        var welcomechannel = _client.GetChannel(765952959581257758) as ISocketMessageChannel;
-        var rules = _client.GetChannel(1048901442397818901) as ISocketMessageChannel;
 
-
-        await welcomechannel.SendMessageAsync($"Welcome to the server, {user.Mention} !\nMake sure to check the <#{rules.Id}> ~~and pick a colour~~");
-    }
-
-    private async Task ClientStatus()
-    {
-        await _client.SetStatusAsync(UserStatus.Online);
-
-        await _client.SetGameAsync("I AM THE STORM THAT IS APPROACHING", "", ActivityType.Listening);
-
-    }
-
-    
     public async Task HandleCommandAsync(SocketMessage messageParam)
     {
 
@@ -104,7 +88,10 @@ class Program
         if (message == null) return;
 
         int argPos = 6;
-        
+
+        if (message.Content.Contains("βιτσας") || message.Content.Contains("βίτσας") || message.Content.Contains("Βιτσας") || message.Content.Contains("Βίτσας") || message.Content.Contains("Vitsas") || message.Content.Contains("vitsas"))
+            await message.Channel.SendMessageAsync("Don't say this name");
+
         //two ways of calling the bot
         if (message.HasStringPrefix("vergil ", ref argPos))
         {
