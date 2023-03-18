@@ -27,8 +27,7 @@ namespace VergilBot.Modules
 
         public async Task InstallSlashCommandsAsync()
         {
-            _client.Ready += ClientReaderSlashCommands;
-            _client.SlashCommandExecuted += SlashCommandHandler;
+            await ClientReaderSlashCommands();
         }
 
         public async Task SlashCommandHandler(SocketSlashCommand command)
@@ -102,6 +101,7 @@ namespace VergilBot.Modules
                 s.AppendLine("\n_Prefix commands not showing. Legacy commands_");
 
                 await command.RespondAsync(s.ToString());
+                return;
             }
             else if (command.Data.Name.Equals("banmepls"))
             {
@@ -118,6 +118,7 @@ namespace VergilBot.Modules
                 await guild.AddBanAsync(e, 1, "IM LEAVING :RAGEY:");
                 await channel.SendMessageAsync($"{e.Username} just committed Sudoku! <:peepoSad:648843706337722402> ", embed: embedLog);
                 await guild.RemoveBanAsync(e);
+                return;
             }
             else if (command.Data.Name.Equals("leledometro"))
             {
@@ -131,6 +132,8 @@ namespace VergilBot.Modules
                 }
                 else
                     await command.RespondAsync("Not allowed");
+
+                return;
             }
             else if (command.Data.Name.Equals("reddit"))
             {
@@ -144,7 +147,7 @@ namespace VergilBot.Modules
 
                 await command.RespondAsync(embed: info.Build());
 
-
+                return;
 
             }
             else if (command.Data.Name.Equals("register"))
@@ -155,6 +158,8 @@ namespace VergilBot.Modules
                 var result = s.Register(user);
 
                 await command.RespondAsync(result);
+
+                return;
             }
             else if (command.Data.Name.Equals("deposit"))
             {
@@ -175,6 +180,7 @@ namespace VergilBot.Modules
 
                 await command.RespondAsync(embed: embedbalance);
 
+                return;
             }
             else if (command.Data.Name.Equals("dice"))
             {
@@ -189,9 +195,11 @@ namespace VergilBot.Modules
                 var gamba = new GambaModule(bet, user);
                 var result = gamba.StartGame();
 
-                
+
 
                 await command.RespondAsync(embed: result.Build());
+
+                return;
             }
             else if (command.CommandName.Equals("balance"))
             {
@@ -199,11 +207,14 @@ namespace VergilBot.Modules
                 var userbalance = sql.CheckBalance(command.User.Id.ToString());
 
                 EmbedBuilder embed = new EmbedBuilder()
-                    .WithAuthor ($"Your balance is {userbalance} bloostones.", command.User.GetAvatarUrl())
+                    .WithAuthor($"Your balance is {userbalance} bloostones.", command.User.GetAvatarUrl())
                     .WithColor(Color.DarkTeal);
 
                 await command.RespondAsync(embed: embed.Build());
+
+                return;
             }
+            
         }
 
         private async Task ClientReaderSlashCommands()
@@ -272,7 +283,6 @@ namespace VergilBot.Modules
                 .WithName("balance")
                 .WithDescription("Show your balance!");
 
-            
             try
             {
                 await _client.CreateGlobalApplicationCommandAsync(globalCommand.Build());
@@ -285,6 +295,7 @@ namespace VergilBot.Modules
                 await _client.CreateGlobalApplicationCommandAsync(registerCommand.Build());
                 await _client.CreateGlobalApplicationCommandAsync(diceCommand.Build());
                 await _client.CreateGlobalApplicationCommandAsync(balanceCommand.Build());
+                
             }
             catch (HttpException e)
             {

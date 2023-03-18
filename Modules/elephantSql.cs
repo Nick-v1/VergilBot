@@ -119,12 +119,11 @@ namespace VergilBot.Modules
             }
             catch (PostgresException e)
             {
-                if (e.Code.Equals("23505"))
+                if (e.SqlState.Equals("23505"))
                     return "You are already registered!";
                 else
                     return e.MessageText;
             }
-            return "Unknown error";
         }
 
         public double CheckBalance(string discordID)

@@ -49,13 +49,13 @@ class Program
         
         //use builder to get discord token;
         string token = configurationRoot.GetSection("DISCORD_TOKEN").Value;
-        
+
         await InstallCommandsAsync();
-        
+
         await _client.LoginAsync(TokenType.Bot, token); //GetEnvironmentVariable("token");
         await _client.StartAsync();
 
-
+        
         await Task.Delay(Timeout.Infinite);
     }
 
@@ -76,7 +76,9 @@ class Program
 
         await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
 
-        await _slashCommands.InstallSlashCommandsAsync(); //slashCommands.cs handles commands
+        _client.Ready += async () => await _slashCommands.InstallSlashCommandsAsync(); //slashCommands.cs handles commands
+
+        _client.SlashCommandExecuted += async (command) => await _slashCommands.SlashCommandHandler(command);
     }
 
 
