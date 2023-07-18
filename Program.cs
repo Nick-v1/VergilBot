@@ -48,8 +48,7 @@ class Program
 
 
         //use builder to get discord token;
-        //string token = configurationRoot.GetSection("DISCORD_TOKEN").Value;
-        string token = "MTA0ODI5MDc5NTE5Njc4NDY5MA.GJfJE2.FkzL5cFdEP3DqcvMNktt2O9zzklG-xGAtJRED8";
+        string token = configurationRoot.GetSection("DISCORD_TOKEN").Value;
 
 
         await InstallCommandsAsync();
