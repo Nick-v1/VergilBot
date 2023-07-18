@@ -11,6 +11,7 @@ using System.Windows.Input;
 using VergilBot.Models.Entities;
 using VergilBot.Models.Misc;
 using Discord.Commands;
+using Microsoft.VisualBasic;
 
 namespace VergilBot.Modules
 {
@@ -92,15 +93,21 @@ namespace VergilBot.Modules
                     {
                         var slashoptions = c.Options.ElementAt(0);
                         slashoptionsElement = slashoptions.Name;
-                        s.AppendLine($"Usage: /**{c.Name}** _{slashoptionsElement}_. {c.Description}.");
+                        s.AppendLine($"Usage: /**{c.Name}** _{slashoptionsElement}_. {c.Description}");
                         continue;
                     }
-                    s.AppendLine($"Usage: /**{c.Name}**. {c.Description}.");
+                    s.AppendLine($"Usage: /**{c.Name}**. {c.Description}");
                 }
 
                 s.AppendLine("\n_Prefix commands not showing. Legacy commands_");
+                var emb = new EmbedBuilder()
+                    .WithColor(Color.Blue)
+                    .WithDescription(s.ToString())
+                    .WithCurrentTimestamp()
+                    .WithFooter($"{_client.CurrentUser.Username}#{_client.CurrentUser.Discriminator}", _client.CurrentUser.GetAvatarUrl())
+                    .WithTitle("Available Commands");
 
-                await command.RespondAsync(s.ToString());
+                await command.RespondAsync(embed: emb.Build());
                 return;
             }
             else if (command.Data.Name.Equals("banmepls"))
@@ -122,17 +129,14 @@ namespace VergilBot.Modules
             }
             else if (command.Data.Name.Equals("leledometro"))
             {
-                if (command.User.Id.Equals(415208824446648320))
-                {
-                    var freedomDay = new DateTime(2023, 06, 08);
-                    var today = DateTime.Today;
+                
+                var freedomDay = new DateTime(2023, 06, 08);
+                var today = DateTime.Today;
 
-                    TimeSpan days = freedomDay - today;
-                    await command.RespondAsync($"Your mandatory chore ends in: {(days.Days).ToString()} days.");
-                }
-                else
-                    await command.RespondAsync("Not allowed");
-
+                TimeSpan days = freedomDay - today;
+                await command.RespondAsync($"Your mandatory chore ends in: {(days.Days).ToString()} days.");
+                
+                
                 return;
             }
             else if (command.Data.Name.Equals("reddit"))
@@ -201,6 +205,25 @@ namespace VergilBot.Modules
 
                 return;
             }
+            else if (command.Data.Name.Equals("dice2"))
+            {
+                var s = command.Data.Options.FirstOrDefault();
+                var chance = (double)command.Data.Options.ElementAtOrDefault(1).Value;
+
+                //Console.WriteLine("Chance is:" +chance);
+
+                var user = command.User;
+                var bet = (double)s.Value;
+
+                var gamba = new dice2(bet, user, chance);
+                var result = gamba.StartGame();
+
+
+
+                await command.RespondAsync(embed: result.Build());
+
+                return;
+            }
             else if (command.CommandName.Equals("balance"))
             {
                 var sql = new elephantSql();
@@ -212,6 +235,39 @@ namespace VergilBot.Modules
 
                 await command.RespondAsync(embed: embed.Build());
 
+                return;
+            }
+            else if (command.CommandName.Equals("bnstime"))
+            {
+                int hour22 = 22; // 24-hour format
+                int hour00 = 00;
+                int hour1 = 01;
+                int hour2 = 02;
+                int hour4 = 04;
+                int hour16 = 16;
+                int hour19 = 19;
+
+                int minute30 = 30;
+                int minute00 = 00;
+                // Create a new DateTime object with the desired hour and minute
+                DateTime scheduledTime2230 = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour22, minute30, 0);
+                DateTime scheduledTime0130 = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour1, minute30, 0);
+                DateTime scheduledTime0430 = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour4, minute30, 0);
+                DateTime scheduledTime1630 = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour16, minute30, 0);
+                DateTime scheduledTime1930 = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour19, minute30, 0);
+                DateTime scheduledTime1900 = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour19, minute00, 0);
+                DateTime scheduledTime0000 = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour00, minute00, 0);
+                DateTime scheduledTime0200 = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour2, minute00, 0);
+                // Add the scheduled time to the embed
+                
+                var emb = new EmbedBuilder()
+                    .WithTitle("Official Boss Spawn Times")
+                    .WithDescription($"__**EU**__\n**Hamman**\nMon-Thurs: {scheduledTime2230.ToString("hh:mm tt")}, {scheduledTime0130.ToString("hh:mm tt")}, " +
+                    $"{scheduledTime0430.ToString("hh:mm tt")}\n" +
+                    $"Fri-Sun: {scheduledTime1630.ToString("hh:mm tt")}, {scheduledTime1930.ToString("hh:mm tt")}, {scheduledTime2230.ToString("hh:mm tt")}, {scheduledTime0130.ToString("hh:mm tt")}, {scheduledTime0430.ToString("hh:mm tt")}" +
+                    $"\n\n" +
+                    $"**Boar**\nFri-Mon: {scheduledTime1900.ToString("hh:mm tt")}, {scheduledTime0000.ToString("hh:mm tt")}, {scheduledTime0200.ToString("hh:mm tt")}");
+                await command.RespondAsync(embed: emb.Build());
                 return;
             }
             
@@ -264,24 +320,29 @@ namespace VergilBot.Modules
                 .WithName("register")
                 .WithDescription("register to the app");
 
-            /*var diceCommand = new SlashCommandBuilder()
-                .WithName("dice")
+            var diceCommand2 = new SlashCommandBuilder()
+                .WithName("dice2")
                 .WithDescription("Roll the dice. Choose your chances!")
                 .AddOption("bet", ApplicationCommandOptionType.Number, "your bet size", true)
                 .AddOption(new SlashCommandOptionBuilder()
                                 .WithName("chances")
                                 .WithDescription("pick your chances!")
                                 .WithRequired(true)
-                                .WithType(ApplicationCommandOptionType.Number));*/
+                                .WithType(ApplicationCommandOptionType.Number));
 
             var diceCommand = new SlashCommandBuilder()
                 .WithName("dice")
                 .WithDescription("Roll the dice. Your chances are picked randomly!")
                 .AddOption("bet", ApplicationCommandOptionType.Number, "your bet size", true);
 
+
             var balanceCommand = new SlashCommandBuilder()
                 .WithName("balance")
                 .WithDescription("Show your balance!");
+
+            var bnsBossTimerCommand = new SlashCommandBuilder()
+                .WithName("bnstime")
+                .WithDescription("Shows the spawn times of field bosses");
 
             try
             {
@@ -289,12 +350,14 @@ namespace VergilBot.Modules
                 await _client.CreateGlobalApplicationCommandAsync(globalCommand1.Build());
                 await _client.CreateGlobalApplicationCommandAsync(globalCommandHelp.Build());
                 await _client.CreateGlobalApplicationCommandAsync(globalCommandBanYourself.Build());
-                await guild.CreateApplicationCommandAsync(localCommandLeledometro.Build());
+                //await guild.CreateApplicationCommandAsync(localCommandLeledometro.Build());
                 await _client.CreateGlobalApplicationCommandAsync(globalReddit.Build());
                 await _client.CreateGlobalApplicationCommandAsync(deposit.Build());
                 await _client.CreateGlobalApplicationCommandAsync(registerCommand.Build());
                 await _client.CreateGlobalApplicationCommandAsync(diceCommand.Build());
+                await _client.CreateGlobalApplicationCommandAsync(diceCommand2.Build());
                 await _client.CreateGlobalApplicationCommandAsync(balanceCommand.Build());
+                //await _client.CreateGlobalApplicationCommandAsync(bnsBossTimerCommand.Build());
                 
             }
             catch (HttpException e)

@@ -8,7 +8,7 @@ using VergilBot.Models.Misc;
 
 namespace VergilBot.Modules
 {
-    internal class GambaModule
+    internal class dice2
     {
         private double bet;
         private IUser user;
@@ -16,14 +16,12 @@ namespace VergilBot.Modules
         private double userBalance;
         const double maxChance = 100.0;
         const double minChance = 1.0;
-        //const double defaultChance = 50.0;
-        //const double defaultMultiplier = 2.0;
 
-        public GambaModule(double bet, IUser user)
+        public dice2(double bet, IUser user, double chance)
         {
             this.bet = bet;
             this.user = user;
-            this.chance = ThreadLocalRandom.NewRandom().NextDouble() * maxChance;
+            this.chance = chance;
         }
 
         public EmbedBuilder StartGame()
@@ -35,8 +33,8 @@ namespace VergilBot.Modules
             if (userBalance.Equals(0.123456789))   // if balance then user doesn't exist in the db
                 return embed.WithDescription("User not registered. Use /register to sign up!");
 
-            
-            if (userBalance <= 0 )
+
+            if (userBalance <= 0)
             {
                 return embed.WithDescription("You have no balance to play").WithColor(Color.Gold);
             }
@@ -65,8 +63,8 @@ namespace VergilBot.Modules
                 double multiplier = minChance / (chance / maxChance);
 
                 if (win)
-                { 
-                    
+                {
+
                     payout = bet * multiplier;
                     var payoutAfterBet = payout - bet;
 
@@ -106,5 +104,6 @@ namespace VergilBot.Modules
             var elephDB = new elephantSql();
             userBalance = elephDB.CheckBalance(user.Id.ToString());
         }
+
     }
 }

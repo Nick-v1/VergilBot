@@ -4,6 +4,7 @@ using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using VergilBot.Models.Misc;
 using VergilBot.Modules;
 
 class Program
@@ -46,7 +47,7 @@ class Program
 
         _slashCommands = new slashCommands(_client, _commands);
 
-        
+
         //use builder to get discord token;
         string token = configurationRoot.GetSection("DISCORD_TOKEN").Value;
 
@@ -54,8 +55,6 @@ class Program
 
         await _client.LoginAsync(TokenType.Bot, token); //GetEnvironmentVariable("token");
         await _client.StartAsync();
-
-        
         await Task.Delay(Timeout.Infinite);
     }
 
@@ -79,9 +78,10 @@ class Program
         _client.Ready += async () => await _slashCommands.InstallSlashCommandsAsync(); //slashCommands.cs handles commands
 
         _client.SlashCommandExecuted += async (command) => await _slashCommands.SlashCommandHandler(command);
+
     }
 
-
+    
     public async Task HandleCommandAsync(SocketMessage messageParam)
     {
 
