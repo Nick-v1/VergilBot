@@ -2,16 +2,10 @@
 using Discord;
 using Discord.WebSocket;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Input;
 using VergilBot.Models.Entities;
 using VergilBot.Models.Misc;
 using Discord.Commands;
-using Microsoft.VisualBasic;
 
 namespace VergilBot.Modules
 {

@@ -4,7 +4,6 @@ using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using VergilBot.Models.Misc;
 using VergilBot.Modules;
 
 class Program
@@ -49,7 +48,9 @@ class Program
 
 
         //use builder to get discord token;
-        string token = configurationRoot.GetSection("DISCORD_TOKEN").Value;
+        //string token = configurationRoot.GetSection("DISCORD_TOKEN").Value;
+        string token = "MTA0ODI5MDc5NTE5Njc4NDY5MA.GJfJE2.FkzL5cFdEP3DqcvMNktt2O9zzklG-xGAtJRED8";
+
 
         await InstallCommandsAsync();
 

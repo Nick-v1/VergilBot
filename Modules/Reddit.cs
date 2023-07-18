@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using Discord;
-using Discord.Net;
-using Microsoft.Extensions.Hosting;
+﻿using Discord;
 using Newtonsoft.Json.Linq;
 using VergilBot.Models.Misc;
 
