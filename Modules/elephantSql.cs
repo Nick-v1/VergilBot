@@ -156,7 +156,8 @@ namespace VergilBot.Modules
         private static string Get() 
         {
             IConfigurationRoot config = Program.GetConfiguration();
-            var uriString = config.GetSection("ELEPHANTSQL_CON").Value; //moved connection string to user secrets
+            //var uriString = config.GetSection("ELEPHANTSQL_CON").Value; //moved connection string to user secrets
+            var uriString = "postgres://pcbiyqtd:kqBXoSPMk3KgaFBUt3nv8mCKT-NI_YhG@dumbo.db.elephantsql.com/pcbiyqtd";
             var uri = new Uri(uriString);
             var db = uri.AbsolutePath.Trim('/');
             var user = uri.UserInfo.Split(':')[0];
