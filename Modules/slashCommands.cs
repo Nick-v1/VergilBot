@@ -6,6 +6,8 @@ using System.Text;
 using VergilBot.Models.Entities;
 using VergilBot.Models.Misc;
 using Discord.Commands;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace VergilBot.Modules
 {
@@ -13,11 +15,14 @@ namespace VergilBot.Modules
     {
         private DiscordSocketClient _client;
         private CommandService _commands;
+        private ChatGpt _chatGpt;
+        private IConfigurationRoot _configurationRoot;
 
-        public slashCommands(DiscordSocketClient _client, CommandService _commands) 
+        public slashCommands(DiscordSocketClient _client, CommandService _commands, ChatGpt chatGptInstance) 
         { 
             this._client = _client;
             this._commands = _commands;
+            _chatGpt = chatGptInstance;
         }
 
         public async Task InstallSlashCommandsAsync()
@@ -123,14 +128,14 @@ namespace VergilBot.Modules
             }
             else if (command.Data.Name.Equals("leledometro"))
             {
-                
+
                 var freedomDay = new DateTime(2023, 06, 08);
                 var today = DateTime.Today;
 
                 TimeSpan days = freedomDay - today;
                 await command.RespondAsync($"Your mandatory chore ends in: {(days.Days).ToString()} days.");
-                
-                
+
+
                 return;
             }
             else if (command.Data.Name.Equals("reddit"))
@@ -231,40 +236,81 @@ namespace VergilBot.Modules
 
                 return;
             }
-            else if (command.CommandName.Equals("bnstime"))
-            {
-                int hour22 = 22; // 24-hour format
-                int hour00 = 00;
-                int hour1 = 01;
-                int hour2 = 02;
-                int hour4 = 04;
-                int hour16 = 16;
-                int hour19 = 19;
+            else if (command.CommandName.Equals("chat"))
+            {  
+                try
+                {
+                    var userInput = command.Data.Options.FirstOrDefault().Value.ToString();
 
-                int minute30 = 30;
-                int minute00 = 00;
-                // Create a new DateTime object with the desired hour and minute
-                DateTime scheduledTime2230 = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour22, minute30, 0);
-                DateTime scheduledTime0130 = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour1, minute30, 0);
-                DateTime scheduledTime0430 = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour4, minute30, 0);
-                DateTime scheduledTime1630 = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour16, minute30, 0);
-                DateTime scheduledTime1930 = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour19, minute30, 0);
-                DateTime scheduledTime1900 = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour19, minute00, 0);
-                DateTime scheduledTime0000 = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour00, minute00, 0);
-                DateTime scheduledTime0200 = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, hour2, minute00, 0);
-                // Add the scheduled time to the embed
+                    await command.DeferAsync();
+
+                    var response = await _chatGpt.TalkWithGpt(userInput);
+
+                    if (response.Length <= 2000)
+                    {
+                        var embed = new EmbedBuilder()
+                        .WithTitle($"Response from Gpt 3.5")
+                        .WithDescription(response)
+                        .Build();
+
+                        await command.FollowupAsync(embed: embed);
+                        return;
+                    }
+                    else
+                    {
+                        var chunkedResponses = ChunkString(response, 2000);
+                        foreach (var chuck in chunkedResponses)
+                        {
+                            await command.FollowupAsync(chuck);
+                        }
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await command.FollowupAsync($"An error occured while processing your request. {ex.Message}");
+                    return;
+                }
                 
-                var emb = new EmbedBuilder()
-                    .WithTitle("Official Boss Spawn Times")
-                    .WithDescription($"__**EU**__\n**Hamman**\nMon-Thurs: {scheduledTime2230.ToString("hh:mm tt")}, {scheduledTime0130.ToString("hh:mm tt")}, " +
-                    $"{scheduledTime0430.ToString("hh:mm tt")}\n" +
-                    $"Fri-Sun: {scheduledTime1630.ToString("hh:mm tt")}, {scheduledTime1930.ToString("hh:mm tt")}, {scheduledTime2230.ToString("hh:mm tt")}, {scheduledTime0130.ToString("hh:mm tt")}, {scheduledTime0430.ToString("hh:mm tt")}" +
-                    $"\n\n" +
-                    $"**Boar**\nFri-Mon: {scheduledTime1900.ToString("hh:mm tt")}, {scheduledTime0000.ToString("hh:mm tt")}, {scheduledTime0200.ToString("hh:mm tt")}");
-                await command.RespondAsync(embed: emb.Build());
-                return;
+            }
+            else if (command.CommandName.Equals("generate"))
+            {
+
+                try
+                {
+                    var userInput = command.Data.Options.FirstOrDefault().Value.ToString();
+
+                    await command.DeferAsync();
+
+                    var sd = new StableDiffusion(userInput);
+
+                    var generatedImageBytes = await sd.GenerateImage(userInput);
+
+                    var embed = new EmbedBuilder()
+                        .WithTitle("Your image is ready")
+                        .WithDescription(command.Data.Options.First().Value.ToString())
+                        .WithImageUrl("attachment://generated_image.png")
+                        .Build();
+
+                    var memoryStream = new MemoryStream(generatedImageBytes);
+
+                    await command.FollowupWithFileAsync(memoryStream, "generated_image.png", embed: embed);
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    await command.FollowupAsync($"An error occured while processing your request. {ex.Message}");
+                    return;
+                }
             }
             
+        }
+
+        private List<string> ChunkString(string source, int chunkSize)
+        {
+            return Enumerable.Range(0, source.Length / chunkSize)
+           .Select(i => source.Substring(i * chunkSize, chunkSize))
+           .ToList();
         }
 
         private async Task ClientReaderSlashCommands()
@@ -334,9 +380,15 @@ namespace VergilBot.Modules
                 .WithName("balance")
                 .WithDescription("Show your balance!");
 
-            var bnsBossTimerCommand = new SlashCommandBuilder()
-                .WithName("bnstime")
-                .WithDescription("Shows the spawn times of field bosses");
+            var chatGpt = new SlashCommandBuilder()
+                .WithName("chat")
+                .WithDescription("Chat with gpt 3.5")
+                .AddOption("question", ApplicationCommandOptionType.String, "your question", true);
+
+            var imageGeneration = new SlashCommandBuilder()
+                .WithName("generate")
+                .WithDescription("Use dalle 2 to create an image")
+                .AddOption("prompt", ApplicationCommandOptionType.String, "your prompt", true);
 
             try
             {
@@ -351,8 +403,8 @@ namespace VergilBot.Modules
                 await _client.CreateGlobalApplicationCommandAsync(diceCommand.Build());
                 await _client.CreateGlobalApplicationCommandAsync(diceCommand2.Build());
                 await _client.CreateGlobalApplicationCommandAsync(balanceCommand.Build());
-                //await _client.CreateGlobalApplicationCommandAsync(bnsBossTimerCommand.Build());
-                
+                await _client.CreateGlobalApplicationCommandAsync(chatGpt.Build());
+                await _client.CreateGlobalApplicationCommandAsync(imageGeneration.Build());
             }
             catch (HttpException e)
             {

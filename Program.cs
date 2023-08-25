@@ -16,9 +16,9 @@ class Program
     private static IConfigurationRoot configurationRoot;
     private slashCommands _slashCommands;
 
-    public static void Main(string[] args) 
+    public static async Task Main(string[] args) 
     {
-        new Program().MainAsync().GetAwaiter().GetResult(); 
+        await new Program().MainAsync(); 
     }
 
     public static IConfigurationRoot GetConfiguration()
@@ -44,13 +44,15 @@ class Program
 
         _client = new DiscordSocketClient(_config);
 
-        _slashCommands = new slashCommands(_client, _commands);
+        ChatGpt chatGptInstance = new ChatGpt(configurationRoot);
+
+        _slashCommands = new slashCommands(_client, _commands, chatGptInstance);
 
 
         //use builder to get discord token;
         string token = configurationRoot.GetSection("DISCORD_TOKEN").Value;
 
-
+        
         await InstallCommandsAsync();
 
         await _client.LoginAsync(TokenType.Bot, token); //GetEnvironmentVariable("token");
@@ -78,7 +80,7 @@ class Program
         _client.Ready += async () => await _slashCommands.InstallSlashCommandsAsync(); //slashCommands.cs handles commands
 
         _client.SlashCommandExecuted += async (command) => await _slashCommands.SlashCommandHandler(command);
-
+        
     }
 
     
