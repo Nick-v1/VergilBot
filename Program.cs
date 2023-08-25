@@ -79,7 +79,17 @@ class Program
 
         _client.Ready += async () => await _slashCommands.InstallSlashCommandsAsync(); //slashCommands.cs handles commands
 
-        _client.SlashCommandExecuted += async (command) => await _slashCommands.SlashCommandHandler(command);
+        
+        _client.SlashCommandExecuted += async (command) =>
+        {
+            await Task.Run(() =>
+            {
+                ThreadPool.QueueUserWorkItem(_ =>
+                {
+                    _slashCommands.SlashCommandHandler(command);
+                });
+            });
+        };
         
     }
 
