@@ -248,23 +248,29 @@ namespace VergilBot.Modules
 
                     if (response.Length <= 2000)
                     {
-                        var embed = new EmbedBuilder()
-                        .WithTitle($"Response from Gpt 3.5")
+                        var embed1 = new EmbedBuilder()
+                            .WithAuthor("GPT 3.5", "https://cdn.discordapp.com/attachments/673874082407907349/1145353361542086687/openai-icon.png")
+                            .WithDescription(response)
+                            .WithCurrentTimestamp()
+                            .WithColor(Color.DarkTeal)
+                            .WithFooter($"{command.User.Username} asked {userInput}", command.User.GetAvatarUrl())
+                            .Build();
+                        
+                        await command.FollowupAsync(embed: embed1);
+                        return;
+                    }
+                    
+                    var embed2 = new EmbedBuilder()
+                        .WithAuthor("GPT 3.5", "https://cdn.discordapp.com/attachments/673874082407907349/1145353361542086687/openai-icon.png")
                         .WithDescription(response)
+                        .WithCurrentTimestamp()
+                        .WithColor(Color.Red)
+                        .WithFooter($"{command.User.Username} asked {userInput}", command.User.GetAvatarUrl())
                         .Build();
 
-                        await command.FollowupAsync(embed: embed);
-                        return;
-                    }
-                    else
-                    {
-                        var chunkedResponses = ChunkString(response, 2000);
-                        foreach (var chuck in chunkedResponses)
-                        {
-                            await command.FollowupAsync(chuck);
-                        }
-                        return;
-                    }
+                    await command.FollowupAsync(embed: embed2);
+                    return;
+                    
                 }
                 catch (Exception ex)
                 {
@@ -299,6 +305,13 @@ namespace VergilBot.Modules
                 }
                 catch (Exception ex)
                 {
+                    
+                    if (ex.HResult.Equals(-2146233088))
+                    {
+                        await command.FollowupAsync("This service is temporarily unavailable.");
+                        return;
+                    }
+                    
                     await command.FollowupAsync($"An error occured while processing your request. {ex.Message}");
                     return;
                 }
@@ -306,6 +319,14 @@ namespace VergilBot.Modules
             
         }
 
+        /// <summary>
+        /// Use this method to chuck a message into smaller pieces.
+        /// Only use if you exceed the maximum characters for normal messages of discord. (2000 characters).
+        /// Embeds max value is 6000 so chucking is not needed.
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="chunkSize"></param>
+        /// <returns></returns>
         private List<string> ChunkString(string source, int chunkSize)
         {
             return Enumerable.Range(0, source.Length / chunkSize)
@@ -387,7 +408,7 @@ namespace VergilBot.Modules
 
             var imageGeneration = new SlashCommandBuilder()
                 .WithName("generate")
-                .WithDescription("Use dalle 2 to create an image")
+                .WithDescription("Use our model to create an image")
                 .AddOption("prompt", ApplicationCommandOptionType.String, "your prompt", true);
 
             try
