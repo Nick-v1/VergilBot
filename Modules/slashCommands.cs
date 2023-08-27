@@ -7,7 +7,6 @@ using VergilBot.Models.Entities;
 using VergilBot.Models.Misc;
 using Discord.Commands;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 
 namespace VergilBot.Modules
 {
@@ -286,18 +285,29 @@ namespace VergilBot.Modules
 
                 try
                 {
+                    
                     var userInput = command.Data.Options.FirstOrDefault().Value.ToString();
 
-                    await command.DeferAsync();
-
-                    var sd = new StableDiffusion(userInput);
+                    await command.DeferAsync(true);
+                    
+                    await command.FollowupAsync("Processing your request...", ephemeral: true);
+                    
+                    await Task.Delay(3000);
+                    
+                    var sd = new StableDiffusion();
+                    
+                    await command.FollowupAsync("Generating your picture...", ephemeral: true);
 
                     var generatedImageBytes = await sd.GenerateImage(userInput);
 
+                    await command.DeleteOriginalResponseAsync();
+                    
                     var embed = new EmbedBuilder()
                         .WithTitle("Your image is ready")
                         .WithDescription(command.Data.Options.First().Value.ToString())
                         .WithImageUrl("attachment://generated_image.png")
+                        .WithCurrentTimestamp()
+                        .WithFooter($"{command.User.Username}", command.User.GetAvatarUrl())
                         .Build();
 
                     var memoryStream = new MemoryStream(generatedImageBytes);
@@ -318,7 +328,7 @@ namespace VergilBot.Modules
                     return;
                 }
             }
-            
+
         }
 
         /// <summary>
@@ -412,6 +422,7 @@ namespace VergilBot.Modules
                 .WithName("generate")
                 .WithDescription("Use our model to create an image")
                 .AddOption("prompt", ApplicationCommandOptionType.String, "your prompt", true);
+
 
             try
             {
