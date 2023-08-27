@@ -250,10 +250,11 @@ namespace VergilBot.Modules
                     {
                         var embed1 = new EmbedBuilder()
                             .WithAuthor("GPT 3.5", "https://cdn.discordapp.com/attachments/673874082407907349/1145353361542086687/openai-icon.png")
+                            .WithTitle($"{userInput}")
                             .WithDescription(response)
                             .WithCurrentTimestamp()
                             .WithColor(Color.DarkTeal)
-                            .WithFooter($"{command.User.Username} asked {userInput}", command.User.GetAvatarUrl())
+                            .WithFooter($"{command.User.Username}", command.User.GetAvatarUrl())
                             .Build();
                         
                         await command.FollowupAsync(embed: embed1);
@@ -262,10 +263,11 @@ namespace VergilBot.Modules
                     
                     var embed2 = new EmbedBuilder()
                         .WithAuthor("GPT 3.5", "https://cdn.discordapp.com/attachments/673874082407907349/1145353361542086687/openai-icon.png")
+                        .WithTitle($"{userInput}")
                         .WithDescription(response)
                         .WithCurrentTimestamp()
                         .WithColor(Color.Red)
-                        .WithFooter($"{command.User.Username} asked {userInput}", command.User.GetAvatarUrl())
+                        .WithFooter($"{command.User.Username}", command.User.GetAvatarUrl())
                         .Build();
 
                     await command.FollowupAsync(embed: embed2);
