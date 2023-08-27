@@ -6,7 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UserSecretsId>613b27ae-b482-4d82-aaef-4337e0e71b2c</UserSecretsId>
-    <StartupObject></StartupObject>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,7 +14,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="7.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="Npgsql" Version="7.0.2" />
+    <PackageReference Include="Npgsql" Version="6.0.9" />
     <PackageReference Include="NSwag.AspNetCore" Version="13.18.2" />
     <PackageReference Include="NSwag.MSBuild" Version="13.18.2">
       <PrivateAssets>all</PrivateAssets>

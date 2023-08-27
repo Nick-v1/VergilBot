@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Npgsql;
 using System.Data;
+using VergilBot.Models;
 
 namespace VergilBot.Modules
 {
@@ -91,7 +92,7 @@ namespace VergilBot.Modules
             }
         }
 
-        public string Register(IUser user) {
+        public string Register(User user) {
             var connectionString = Get();
 
             try
@@ -100,14 +101,15 @@ namespace VergilBot.Modules
 
                 conn.Open();
 
-                var sql = "INSERT INTO user_accounts (username, balance, discord_account_id) VALUES (@username, @balance, @discord_account_id)";
+                var sql = "INSERT INTO user_accounts (username, balance, discord_account_id, hassubscription) VALUES (@username, @balance, @discord_account_id, @hassubscription)";
 
                 using var cmd = new NpgsqlCommand(sql, conn);
 
-                cmd.Parameters.AddWithValue("username", user.Username + "#" + user.Discriminator);
+                cmd.Parameters.AddWithValue("username", user.Username);
                 cmd.Parameters.AddWithValue("balance", 1000.50);
-                cmd.Parameters.AddWithValue("discord_account_id", user.Id.ToString());
-
+                cmd.Parameters.AddWithValue("discord_account_id", user.DiscordId);
+                cmd.Parameters.AddWithValue("hassubscription", user.HasSubscription);
+                
                 var rowsAffected = cmd.ExecuteNonQuery();
 
                 return "Successfully registered!";
@@ -116,8 +118,8 @@ namespace VergilBot.Modules
             {
                 if (e.SqlState.Equals("23505"))
                     return "You are already registered!";
-                else
-                    return e.MessageText;
+                
+                throw new Exception(e.Message);
             }
         }
 
@@ -146,7 +148,10 @@ namespace VergilBot.Modules
                 else
                     conn.Close();
             }
-            catch (Exception e) { }
+            catch (Exception e)
+            {
+                // ignored
+            }
 
             return 0.123456789d;
         }

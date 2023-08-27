@@ -1,4 +1,5 @@
-﻿using Discord.Net;
+﻿using System.Reflection.Emit;
+using Discord.Net;
 using Discord;
 using Discord.WebSocket;
 using Newtonsoft.Json;
@@ -7,6 +8,7 @@ using VergilBot.Models.Entities;
 using VergilBot.Models.Misc;
 using Discord.Commands;
 using Microsoft.Extensions.Configuration;
+using VergilBot.Service;
 
 namespace VergilBot.Modules
 {
@@ -154,12 +156,12 @@ namespace VergilBot.Modules
             }
             else if (command.Data.Name.Equals("register"))
             {
-                var s = new elephantSql();
                 IUser user = command.User;
 
-                var result = s.Register(user);
+                var service = new UserService();
+                var result = service.Register(user);
 
-                await command.RespondAsync(result);
+                await command.RespondAsync(embed: result);
 
                 return;
             }
@@ -224,14 +226,13 @@ namespace VergilBot.Modules
             }
             else if (command.CommandName.Equals("balance"))
             {
-                var sql = new elephantSql();
-                var userbalance = sql.CheckBalance(command.User.Id.ToString());
+                var user = command.User;
+                await command.DeferAsync();
 
-                EmbedBuilder embed = new EmbedBuilder()
-                    .WithAuthor($"Your balance is {userbalance} bloostones.", command.User.GetAvatarUrl())
-                    .WithColor(Color.DarkTeal);
+                var service = new UserService();
+                var embd = service.GetBalance(user);
 
-                await command.RespondAsync(embed: embed.Build());
+                await command.FollowupAsync(embed: embd);
 
                 return;
             }
