@@ -1,4 +1,5 @@
-﻿using Discord;
+﻿using System.Diagnostics;
+using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using System.Text;
@@ -27,6 +28,32 @@ namespace VergilBot.Modules
             var builder = new ComponentBuilder().WithButton(buttonstr, "custom-button");
             var s = new SelectMenuOptionBuilder();
             await ReplyAsync("\t", components: builder.Build());
+        }
+
+        [RequireOwner]
+        [Command("start service SD")]
+        public async Task StartSdService()
+        {
+            try
+            {
+                string batchFilePath = @"Z:\SUPER SD 2.0\stable-diffusion-webui\webui-user.bat";
+                
+                var process = new Process();
+                process.StartInfo.FileName = @"cmd.exe";
+                process.StartInfo.Arguments = $"/C \"{batchFilePath}\"";
+                process.StartInfo.UseShellExecute = true;
+                process.StartInfo.CreateNoWindow = false;
+                process.StartInfo.WindowStyle = ProcessWindowStyle.Normal;
+                process.StartInfo.WorkingDirectory = Path.GetDirectoryName(batchFilePath);
+                
+                process.Start();
+
+                await ReplyAsync("SD service has started");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
         }
 
         /// <summary>

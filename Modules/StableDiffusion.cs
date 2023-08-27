@@ -22,45 +22,44 @@ namespace VergilBot.Modules
         private readonly string infoEndpoint;
         private readonly string txt2imgEndpoint;
 
-        public StableDiffusion(string prompt)
+        public StableDiffusion()
         {
             _url = "http://127.0.0.1:7860";
-            _sampler = "Euler a";
-            _negativePrompt = "(low resolution, low quality, worst quality, normal quality)";
+            _sampler = "DPM++ 2M SDE Karras";
+            _negativePrompt = "(FastNegativeV2:0.7), low quality, worst quality, EasyNegative, bad-picture-chill-75v, BadDream By bad artist -neg";
             infoEndpoint = $"{_url}/sdapi/v1/png-info";
             txt2imgEndpoint = $"{_url}/sdapi/v1/txt2img";
         }
-
         public async Task<byte[]?> GenerateImage(string prompt)
         {
             try
             {
                 var payload = new Dictionary<string, object>
                 {
-                    { "prompt", prompt },
-                    { "steps", 24 },
+                    { "prompt", $"{prompt}" },
+                    { "steps", 25 },
                     { "sampler_index", _sampler},
-                    { "width", 512},
-                    { "height", 512},
+                    { "width", 600},
+                    { "height", 600},
                     { "use_async", true},
                     { "negative_prompt", _negativePrompt},
-                    { "cfg_scale", 6}
+                    { "cfg_scale", 7}
                 };
 
-                        /*var overrideSettings = new Dictionary<string, object>
-                        {
-                            { "CLIP_stop_at_last_layers", 2 }
-                        };
+                var overrideSettings = new Dictionary<string, object>
+                {
+                    { "CLIP_stop_at_last_layers", 2 }
+                };
 
-                        var overridePayload = new Dictionary<string, object>
-                        {
-                            { "override_settings", overrideSettings }
-                        };
+                var overridePayload = new Dictionary<string, object>
+                {
+                    { "override_settings", overrideSettings }
+                };
 
-                        foreach (var item in overridePayload)
-                        {
-                            payload[item.Key] = item.Value;
-                        }*/
+                foreach (var item in overridePayload)
+                {
+                    payload[item.Key] = item.Value;
+                }
 
                 using var httpClient = new HttpClient();
                 var jsonPayload = JsonConvert.SerializeObject(payload);
@@ -75,6 +74,7 @@ namespace VergilBot.Modules
                 {
                     using var imageStream = new MemoryStream(Convert.FromBase64String(imageBase64.Split(",", 2)[0]));
                     var image = Image.FromStream(imageStream);
+                    byte[] imageStreamReturned = imageStream.ToArray();
 
                     var pngPayload = new
                     {
@@ -99,9 +99,9 @@ namespace VergilBot.Modules
 
                     image.SetPropertyItem(property);
 
-                    await SaveImageLocally(image, $"generated_image_{Path.GetRandomFileName()}.png");
+                    var path = await SaveImageLocally(image, $"generated_image_{Path.GetRandomFileName()}.png");
 
-                    return imageStream.ToArray();
+                    return imageStreamReturned;
                 }
 
                 return null;
@@ -109,11 +109,11 @@ namespace VergilBot.Modules
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(ex.Message);
+                throw new Exception(ex.Message);
             }
         }
 
-        public async Task SaveImageLocally(Image image, string fileName)
+        public async Task<string> SaveImageLocally(Image image, string fileName)
         {
             try
             {
@@ -133,6 +133,8 @@ namespace VergilBot.Modules
                 await File.WriteAllBytesAsync(filePath, imageBytes);
 
                 Console.WriteLine($"Image saved successfully at: {filePath}");
+
+                return filePath;
             }
             catch (Exception ex)
             {
