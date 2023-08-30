@@ -9,6 +9,7 @@ using VergilBot.Models.Misc;
 using Discord.Commands;
 using Microsoft.Extensions.Configuration;
 using VergilBot.Service;
+using Attachment = System.Net.Mail.Attachment;
 
 namespace VergilBot.Modules
 {
@@ -329,6 +330,50 @@ namespace VergilBot.Modules
                     return;
                 }
             }
+            else if (command.CommandName.Equals("generateusingcontrolnet"))
+            {
+                try
+                {
+                    await command.DeferAsync(true);
+
+                    var userPrompt = command.Data.Options.ElementAt(0).Value.ToString();
+
+                    var attachment = command.Data.Options.ElementAt(1).Value;
+                    
+                    var attachmentOption = attachment as IAttachment;
+
+                    if (attachmentOption.Url.EndsWith(".png"))
+                    {
+                        var sd = new StableDiffusion();
+
+                        var generatedImageBytes = await sd.UseControlNet(userPrompt!, attachmentOption);
+
+                        var embed = new EmbedBuilder()
+                            .WithTitle("Your image is ready")
+                            .WithDescription(command.Data.Options.First().Value.ToString())
+                            .WithImageUrl("attachment://generated_image.png")
+                            .WithCurrentTimestamp()
+                            .WithFooter($"{command.User.Username}", command.User.GetAvatarUrl())
+                            .Build();
+
+                        var memoryStream = new MemoryStream(generatedImageBytes);
+
+                        await command.FollowupWithFileAsync(memoryStream, "generated_image.png", embed: embed,
+                                ephemeral: false);
+                        
+                    }
+                    else
+                    {
+                        throw new Exception("The uploaded attachment is not a supported image format.");
+                    }
+                    
+
+                }
+                catch (Exception e)
+                {
+                    await command.FollowupAsync(e.Message);
+                }
+            }
 
         }
 
@@ -424,6 +469,11 @@ namespace VergilBot.Modules
                 .WithDescription("Use our model to create an image")
                 .AddOption("prompt", ApplicationCommandOptionType.String, "your prompt", true);
 
+            var controlNetGeneration = new SlashCommandBuilder()
+                .WithName("generateusingcontrolnet")
+                .WithDescription("Generate a picture with today's control network")
+                .AddOption("prompt", ApplicationCommandOptionType.String, "your prompt", true)
+                .AddOption("qr", ApplicationCommandOptionType.Attachment, "your qr code", true);
 
             try
             {
@@ -440,6 +490,7 @@ namespace VergilBot.Modules
                 await _client.CreateGlobalApplicationCommandAsync(balanceCommand.Build());
                 await _client.CreateGlobalApplicationCommandAsync(chatGpt.Build());
                 await _client.CreateGlobalApplicationCommandAsync(imageGeneration.Build());
+                await _client.CreateGlobalApplicationCommandAsync(controlNetGeneration.Build());
             }
             catch (HttpException e)
             {

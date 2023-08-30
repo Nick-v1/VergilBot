@@ -6,8 +6,12 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using Discord;
+using Namotion.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using VergilBot.Models.Entities;
+using Image = System.Drawing.Image;
 
 namespace VergilBot.Modules
 {
@@ -32,12 +36,31 @@ namespace VergilBot.Modules
         }
         public async Task<byte[]?> GenerateImage(string prompt)
         {
+            List<string> goryWords = new List<string> { "attack", "battle", "blood", "bloodbath", "bloodshot", "bloody", "bruises", "cannibal", "cannibalism",
+            "car crash", "corpse", "cronenberg", "crucified", "crucifixion", "cutting", "dead", "decapitate", "flesh", "gory", "gruesome", "headshot", "hell",
+            "infected", "infested", "khorne", "kill", "killing", "massacre", "riot", "sadist", "seppuku bukakke", "shooting", "slaughter", "suicide", "surgery",
+            "teratoma", "terror", "tryphophobia", "visceral", "vivisection", "war", "wound"};
+
+            List<string> bodyPartsWords = new List<string> { "arse", "ass", "badonkers", "big ass", "booba", "booty", "bosom", "breasts", "busty", "butthole",
+            "clunge", "crotch", "deez nuts", "diagram of uterus/ ovaries", "girth", "honkers", "hooters", "knob", "labia", "mammaries", "minge", "mommy milker",
+            "nipple", "oppai", "organs", "ovaries", "penis", "phallus", "sexy female", "skimpy", "thick", "titty", "vagina", "veiny"};
+
+            List<string> adultetyWords = new List<string> { "ahegao", "ballgag", "bimbo", "bodily fluids", "boudoir", "brothel", "clockwork orange", "coon",
+            "dominatrix", "droog", "erotic", "fuck", "furry art", "fursona", "gay", "hardcore", "hentai", "horny", "hot", "humongous dong", "incest", "jav",
+            "jerk off king at pic", "kinbaku", "latex", "legs spread", "lingerie", "making love", "moody", "naughty", "orgy", "pinup", "piss fetish",
+            "playboy", "pleasure", "pleasures", "rule34", "seducing", "seductive", "sensual", "sexy", "shag", "shibari", "smut", "succubus", "sweaty", "thot", "transparent",
+            "twerk", "underwear", "unicycles", "virgin", "voluptuous", "wincest", "xxx"};
+
+            var clothingWords = new List<string> { "au naturale", "bare chest", "barely dressed", "bra", "clear", "cleavage", "full frontal", "invisible clothes",
+            "lingerie", "naked", "negligee", "no clothes", "no shirt", "nude", "risque", "scantity clad", "stripped", "unclothed", "wearing nothing", "with no shirt",
+            "without clothes on", "zero clothes" };
+
             try
             {
                 var payload = new Dictionary<string, object>
                 {
                     { "prompt", $"{prompt}" },
-                    { "steps", 25 },
+                    { "steps", 28 },
                     { "sampler_index", _sampler},
                     { "width", 600},
                     { "height", 600},
@@ -144,6 +167,20 @@ namespace VergilBot.Modules
             }
         }
 
+        /*public async Task<List<string>> TypeControlNet()
+        {
+            var httpClient = new HttpClient();
+            var response = await httpClient.GetAsync("http://127.0.0.1:7860/controlnet/model_list?update=true");
+
+            var responseString = await response.Content.ReadAsStringAsync();
+
+            // Deserialize the JSON string into ControlNetResponse using JsonConvert
+            var controlNetResponse = JsonConvert.DeserializeObject<ControlNet>(responseString);
+
+            // Return the list of strings from the deserialized object
+            return controlNetResponse.model_list;
+        }*/
+
         private List<string> GetImageList(object imagesValue)
         {
             if (imagesValue is JArray imagesArray)
@@ -157,6 +194,98 @@ namespace VergilBot.Modules
             else
             {
                 throw new InvalidOperationException("Invalid type for 'images' value.");
+            }
+        }
+
+        /// <summary>
+        /// Image generation with Controlnet (QR model selected)
+        /// </summary>
+        /// <param name="prompt"></param>
+        /// <param name="userImage"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public async Task<byte[]?> UseControlNet(string prompt, IAttachment userImage)
+        {
+            try
+            {
+                var imageUrl = userImage.Url;
+                byte[] imageDownloaded;
+                
+                using (var httpClient = new HttpClient())
+                {
+                    var imageBytes = await httpClient.GetByteArrayAsync(imageUrl);
+                    imageDownloaded = imageBytes;
+                }
+
+                string base64String = Convert.ToBase64String(imageDownloaded);
+
+                var controlNet = new ControlNet
+                {
+                    args = new List<ControlNetArgs>
+                    {
+                        new ControlNetArgs
+                        {
+                            input_image = base64String,
+                            module = "none",
+                            model = "controlnetQRPatternQR_v2Sd15 [2d8d5750]",
+                            resize_mode = "Scale to Fit (Inner Fit)",
+                            lowvram = false,
+                            weight = 1.1,
+                            guidance = 1,
+                            threshold_a = 50,
+                            threshold_b = 130,
+                            guessmode = false
+                        }
+                    }
+                };
+
+                var alwaysOnScripts = new alwayson_scripts
+                {
+                    ControlNet = controlNet
+                };
+
+                var payload = new Dictionary<string, object>
+                {
+                    { "prompt", prompt },
+                    { "steps", 28 },
+                    { "sampler_index", "Euler a" },
+                    { "width", 600 },
+                    { "height", 600 },
+                    { "use_async", true },
+                    { "cfg_scale", 7 },
+                    { "alwayson_scripts", alwaysOnScripts }
+                };
+
+                using var httpclient = new HttpClient();
+                string jsonPayload = JsonConvert.SerializeObject(payload);
+
+                var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+
+                var response = await httpclient.PostAsync(txt2imgEndpoint, content);
+                response.EnsureSuccessStatusCode();
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var responseObject = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseContent);
+
+                foreach (var imageBase64 in GetImageList(responseObject["images"]))
+                {
+                    using var imageStream = new MemoryStream(Convert.FromBase64String(imageBase64.Split(",", 2)[0]));
+                    var image = Image.FromStream(imageStream);
+
+                    byte[] imageStreamReturned = imageStream.ToArray();
+
+                    var path = await SaveImageLocally(image, $"generated_image_{Path.GetRandomFileName()}.png");
+
+                    Console.WriteLine($"Image (ControlNet) Saved at: {path}");
+
+                    return imageStreamReturned;
+                }
+
+                return null;
+            }
+            catch (Exception e)
+            {
+                throw new Exception(e.Message);
             }
         }
     }

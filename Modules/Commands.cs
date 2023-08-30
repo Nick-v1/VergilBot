@@ -30,6 +30,27 @@ namespace VergilBot.Modules
             await ReplyAsync("\t", components: builder.Build());
         }
 
+        /*[Command("controlnet version")]
+        public async Task ControlnetVersion()
+        {
+            var sd = new StableDiffusion();
+            var result = await sd.TypeControlNet();
+
+            var resultstring = "";
+
+            foreach (var item in result)
+            {
+                resultstring += item;
+            }
+           
+            var embd = new EmbedBuilder()
+                .WithDescription(resultstring)
+                .WithTitle("Available Controlnets:")
+                .Build();
+
+            await ReplyAsync(embed: embd);
+        }*/
+
         [RequireOwner]
         [Command("start service SD")]
         public async Task StartSdService()

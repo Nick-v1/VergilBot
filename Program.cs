@@ -48,10 +48,8 @@ class Program
 
         _slashCommands = new slashCommands(_client, _commands, chatGptInstance);
 
-
         //use builder to get discord token;
         string token = configurationRoot.GetSection("DISCORD_TOKEN").Value;
-
         
         await InstallCommandsAsync();
 
