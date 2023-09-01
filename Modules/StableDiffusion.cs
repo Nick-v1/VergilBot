@@ -1,13 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.IO;
-using System.Net.Http;
-using System.Net.Http.Headers;
+﻿using System.Drawing;
 using System.Text;
 using Discord;
-using Namotion.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using VergilBot.Models.Entities;
@@ -30,42 +23,24 @@ namespace VergilBot.Modules
         public StableDiffusion()
         {
             _url = "http://127.0.0.1:7860";
-            _sampler = "DPM++ 2M SDE Karras";
-            _negativePrompt = "low quality, worst quality, EasyNegative, bad-picture-chill-75v, BadDream By bad artist -neg";
+            _sampler = "DPM++ 2M Karras";
+            _negativePrompt = "(worst quality:1.3), (low quality:1.3), (lowres:1.1), (monochrome:1.1), (greyscale), multiple views, comic, sketch, animal ears, pointy ears, (blurry:1.1), transparent, see-through,";
             infoEndpoint = $"{_url}/sdapi/v1/png-info";
             txt2imgEndpoint = $"{_url}/sdapi/v1/txt2img";
             img2imgEndpoint = $"{_url}/sdapi/v1/img2img";
         }
-        public async Task<byte[]?> GenerateImage(string prompt)
+        public async Task<byte[]?> GenerateImage(string prompt, int? width, int? height)
         {
-            List<string> goryWords = new List<string> { "attack", "battle", "blood", "bloodbath", "bloodshot", "bloody", "bruises", "cannibal", "cannibalism",
-            "car crash", "corpse", "cronenberg", "crucified", "crucifixion", "cutting", "dead", "decapitate", "flesh", "gory", "gruesome", "headshot", "hell",
-            "infected", "infested", "khorne", "kill", "killing", "massacre", "riot", "sadist", "seppuku bukakke", "shooting", "slaughter", "suicide", "surgery",
-            "teratoma", "terror", "tryphophobia", "visceral", "vivisection", "war", "wound"};
-
-            List<string> bodyPartsWords = new List<string> { "arse", "ass", "badonkers", "big ass", "booba", "booty", "bosom", "breasts", "busty", "butthole",
-            "clunge", "crotch", "deez nuts", "diagram of uterus/ ovaries", "girth", "honkers", "hooters", "knob", "labia", "mammaries", "minge", "mommy milker",
-            "nipple", "oppai", "organs", "ovaries", "penis", "phallus", "sexy female", "skimpy", "thick", "titty", "vagina", "veiny"};
-
-            List<string> adultetyWords = new List<string> { "ahegao", "ballgag", "bimbo", "bodily fluids", "boudoir", "brothel", "clockwork orange", "coon",
-            "dominatrix", "droog", "erotic", "fuck", "furry art", "fursona", "gay", "hardcore", "hentai", "horny", "hot", "humongous dong", "incest", "jav",
-            "jerk off king at pic", "kinbaku", "latex", "legs spread", "lingerie", "making love", "moody", "naughty", "orgy", "pinup", "piss fetish",
-            "playboy", "pleasure", "pleasures", "rule34", "seducing", "seductive", "sensual", "sexy", "shag", "shibari", "smut", "succubus", "sweaty", "thot", "transparent",
-            "twerk", "underwear", "unicycles", "virgin", "voluptuous", "wincest", "xxx"};
-
-            var clothingWords = new List<string> { "au naturale", "bare chest", "barely dressed", "bra", "clear", "cleavage", "full frontal", "invisible clothes",
-            "lingerie", "naked", "negligee", "no clothes", "no shirt", "nude", "risque", "scantity clad", "stripped", "unclothed", "wearing nothing", "with no shirt",
-            "without clothes on", "zero clothes" };
-
+            
             try
             {
                 var payload = new Dictionary<string, object>
                 {
                     { "prompt", $"{prompt}" },
                     { "steps", 28 },
-                    { "sampler_index", _sampler},
-                    { "width", 600},
-                    { "height", 600},
+                    { "sampler_index", "Restart"},
+                    { "width", width ??= 600},
+                    { "height", height ??= 600},
                     { "use_async", true},
                     { "negative_prompt", _negativePrompt},
                     { "cfg_scale", 7}

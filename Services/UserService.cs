@@ -2,7 +2,7 @@
 using VergilBot.Models;
 using VergilBot.Modules;
 
-namespace VergilBot.Service;
+namespace VergilBot.Services;
 
 public class UserService
 {

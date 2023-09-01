@@ -7,7 +7,8 @@ using VergilBot.Models.Entities;
 using VergilBot.Models.Misc;
 using Discord.Commands;
 using Microsoft.Extensions.Configuration;
-using VergilBot.Service;
+using VergilBot.Service.ValidationServices;
+using VergilBot.Services;
 
 namespace VergilBot.Modules
 {
@@ -286,18 +287,55 @@ namespace VergilBot.Modules
                 try
                 {
                     
-                    var userInput = command.Data.Options.FirstOrDefault().Value.ToString();
+                    await command.DeferAsync();
+                    var userInput = command.Data.Options.ElementAt(0).Value.ToString();
 
-                    await command.DeferAsync(true);
+                    var optionsCount = command.Data.Options.Count;
 
+                    if (optionsCount != 1)
+                    {
+                        if (optionsCount != 3)
+                        {
+                            await command.FollowupAsync("Error: Wrong number of parameters.");
+                            return;
+                        }
+                        
+                        var width = int.Parse(command.Data.Options.ElementAt(1).Value.ToString());
+                        var height = int.Parse(command.Data.Options.ElementAt(2).Value.ToString());
+                        
+                        var validation = new StableDiffusionValidator().ValidateHeightAndWidth(width, height);
+                        if (!validation.Success)
+                        {
+                            var embed1 = new EmbedBuilder().WithColor(Color.DarkRed).WithTitle(validation.Message).Build();
+                            
+                            await command.FollowupAsync(embed: embed1);
+                            return;
+                        }
+
+                        var sd0 = new StableDiffusion();
+                        var generatedImageBytes0 = await sd0.GenerateImage(userInput, width: width, height: height);
+                        
+                        
+                        var embed0 = new EmbedBuilder()
+                            .WithTitle("Your image is ready")
+                            .WithDescription(command.Data.Options.First().Value.ToString())
+                            .WithImageUrl("attachment://generated_image.png")
+                            .WithCurrentTimestamp()
+                            .WithFooter($"{command.User.Username}", command.User.GetAvatarUrl())
+                            .Build();
+
+                        var memoryStream0 = new MemoryStream(generatedImageBytes0);
+
+                        await command.FollowupWithFileAsync(memoryStream0, "generated_image.png", embed: embed0);
+                        
+                        return;
+                    }
+                    
                     //await Task.Delay(3000);
                     
                     var sd = new StableDiffusion();
-                    
-                    await command.FollowupAsync("Generating your picture...", ephemeral: true);
 
-                    var generatedImageBytes = await sd.GenerateImage(userInput);
-
+                    var generatedImageBytes = await sd.GenerateImage(userInput, null, null);
                     
                     var embed = new EmbedBuilder()
                         .WithTitle("Your image is ready")
@@ -309,7 +347,7 @@ namespace VergilBot.Modules
 
                     var memoryStream = new MemoryStream(generatedImageBytes);
 
-                    await command.FollowupWithFileAsync(memoryStream, "generated_image.png", embed: embed, ephemeral: false);
+                    await command.FollowupWithFileAsync(memoryStream, "generated_image.png", embed: embed);
                     return;
                 }
                 catch (Exception ex)
@@ -501,8 +539,10 @@ namespace VergilBot.Modules
 
             var imageGeneration = new SlashCommandBuilder()
                 .WithName("generate")
-                .WithDescription("Use our model to create an image")
-                .AddOption("prompt", ApplicationCommandOptionType.String, "your prompt", true);
+                .WithDescription("Generate a picture with today's random model")
+                .AddOption("prompt", ApplicationCommandOptionType.String, "your prompt", true)
+                .AddOption("width", ApplicationCommandOptionType.Integer, "width of the image to be generated", false)
+                .AddOption("height", ApplicationCommandOptionType.Integer, "height of the image to be generated", false);
 
             var controlNetGeneration = new SlashCommandBuilder()
                 .WithName("generateusingcontrolnet")
