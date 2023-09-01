@@ -25,14 +25,16 @@ namespace VergilBot.Modules
         private readonly string _negativePrompt;
         private readonly string infoEndpoint;
         private readonly string txt2imgEndpoint;
+        private readonly string img2imgEndpoint;
 
         public StableDiffusion()
         {
             _url = "http://127.0.0.1:7860";
             _sampler = "DPM++ 2M SDE Karras";
-            _negativePrompt = "(FastNegativeV2:0.7), low quality, worst quality, EasyNegative, bad-picture-chill-75v, BadDream By bad artist -neg";
+            _negativePrompt = "low quality, worst quality, EasyNegative, bad-picture-chill-75v, BadDream By bad artist -neg";
             infoEndpoint = $"{_url}/sdapi/v1/png-info";
             txt2imgEndpoint = $"{_url}/sdapi/v1/txt2img";
+            img2imgEndpoint = $"{_url}/sdapi/v1/img2img";
         }
         public async Task<byte[]?> GenerateImage(string prompt)
         {
@@ -226,15 +228,19 @@ namespace VergilBot.Modules
                         new ControlNetArgs
                         {
                             input_image = base64String,
+                            mask = null,
                             module = "none",
                             model = "controlnetQRPatternQR_v2Sd15 [2d8d5750]",
-                            resize_mode = "Scale to Fit (Inner Fit)",
-                            lowvram = false,
-                            weight = 1.1,
-                            guidance = 1,
+                            resize_mode = "Scale to Fit (Inner Fit)",            //Choose between: Just Resize, Scale to Fit (Inner Fit), Envelope (Outer Fit)
+                            control_mode = "Balanced",                           //Chose between: Balanced, My prompt is more important, ControlNet is more important
+                            weight = 1,
+                            guidance_start = 0.1,
+                            guidance_end = 0.9,
                             threshold_a = 50,
-                            threshold_b = 130,
-                            guessmode = false
+                            threshold_b = 150,
+                            pixel_perfect = true,
+                            lowvram = false,
+                            processor_res = 64
                         }
                     }
                 };
@@ -288,5 +294,85 @@ namespace VergilBot.Modules
                 throw new Exception(e.Message);
             }
         }
+
+
+        public async Task<byte[]> Img2Img(string prompt, IAttachment userImage)
+        {
+            try
+            {
+                var imageUrl = userImage.Url;
+
+                using var httpClient = new HttpClient();
+                var imageDownloaded = await httpClient.GetByteArrayAsync(imageUrl);
+
+                var base64String = Convert.ToBase64String(imageDownloaded);
+
+                var images = new List<string> { base64String };
+                
+                var payload = new Dictionary<string, object>
+                {
+                    { "init_images", images},
+                    { "denoising_strength", 0.6},
+                    { "prompt", prompt },
+                    { "steps", 28 },
+                    { "sampler_index", "Euler a" },
+                    { "width", 600 },
+                    { "height", 600 },
+                    { "negative_prompt", _negativePrompt},
+                    { "cfg_scale", 7 }
+                };
+
+                var jsonPayload = JsonConvert.SerializeObject(payload);
+                var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+                var response = await httpClient.PostAsync(img2imgEndpoint, content);
+                response.EnsureSuccessStatusCode();
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var responseObject = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseContent);
+
+                foreach (var imageBase64 in GetImageList(responseObject["images"]))
+                {
+                    using var imageStream = new MemoryStream(Convert.FromBase64String(imageBase64.Split(",", 2)[0]));
+                    var image = Image.FromStream(imageStream);
+                    byte[] imageStreamReturned = imageStream.ToArray();
+
+                    var pngPayload = new
+                    {
+                        image = "data:image/png;base64," + imageBase64
+                    };
+
+                    // Send POST request to endpoint
+                    jsonPayload = JsonConvert.SerializeObject(pngPayload);
+                    content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+                    response = await httpClient.PostAsync(infoEndpoint, content);
+                    response.EnsureSuccessStatusCode();
+
+                    responseContent = await response.Content.ReadAsStringAsync();
+                    var pngInfo = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseContent);
+
+                    var parameters = pngInfo["info"].ToString();
+
+                    var property = image.PropertyItems[0];
+                    property.Type = 2;
+                    property.Value = Encoding.ASCII.GetBytes(parameters);
+                    property.Len = property.Value.Length;
+
+                    image.SetPropertyItem(property);
+
+                    var path = await SaveImageLocally(image, $"generated_image_{Path.GetRandomFileName()}.png");
+                    Console.WriteLine($"Image (img2img) Saved at: {path}");
+
+                    return imageStreamReturned;
+                }
+
+                throw new Exception("Unexpected error");
+
+            }
+            catch (Exception e)
+            {
+                throw new Exception(e.Message);
+            }
+        }
+        
     }
 }

@@ -1,5 +1,4 @@
-﻿using System.Reflection.Emit;
-using Discord.Net;
+﻿using Discord.Net;
 using Discord;
 using Discord.WebSocket;
 using Newtonsoft.Json;
@@ -9,7 +8,6 @@ using VergilBot.Models.Misc;
 using Discord.Commands;
 using Microsoft.Extensions.Configuration;
 using VergilBot.Service;
-using Attachment = System.Net.Mail.Attachment;
 
 namespace VergilBot.Modules
 {
@@ -291,10 +289,8 @@ namespace VergilBot.Modules
                     var userInput = command.Data.Options.FirstOrDefault().Value.ToString();
 
                     await command.DeferAsync(true);
-                    
-                    await command.FollowupAsync("Processing your request...", ephemeral: true);
-                    
-                    await Task.Delay(3000);
+
+                    //await Task.Delay(3000);
                     
                     var sd = new StableDiffusion();
                     
@@ -302,7 +298,6 @@ namespace VergilBot.Modules
 
                     var generatedImageBytes = await sd.GenerateImage(userInput);
 
-                    await command.DeleteOriginalResponseAsync();
                     
                     var embed = new EmbedBuilder()
                         .WithTitle("Your image is ready")
@@ -314,7 +309,7 @@ namespace VergilBot.Modules
 
                     var memoryStream = new MemoryStream(generatedImageBytes);
 
-                    await command.FollowupWithFileAsync(memoryStream, "generated_image.png", embed: embed);
+                    await command.FollowupWithFileAsync(memoryStream, "generated_image.png", embed: embed, ephemeral: false);
                     return;
                 }
                 catch (Exception ex)
@@ -334,7 +329,7 @@ namespace VergilBot.Modules
             {
                 try
                 {
-                    await command.DeferAsync(true);
+                    await command.DeferAsync();
 
                     var userPrompt = command.Data.Options.ElementAt(0).Value.ToString();
 
@@ -349,7 +344,7 @@ namespace VergilBot.Modules
                         var generatedImageBytes = await sd.UseControlNet(userPrompt!, attachmentOption);
 
                         var embed = new EmbedBuilder()
-                            .WithTitle("Your image is ready")
+                            .WithTitle($"Your image is ready (ControlNet)")
                             .WithDescription(command.Data.Options.First().Value.ToString())
                             .WithImageUrl("attachment://generated_image.png")
                             .WithCurrentTimestamp()
@@ -359,7 +354,7 @@ namespace VergilBot.Modules
                         var memoryStream = new MemoryStream(generatedImageBytes);
 
                         await command.FollowupWithFileAsync(memoryStream, "generated_image.png", embed: embed,
-                                ephemeral: false);
+                            ephemeral: false);
                         
                     }
                     else
@@ -368,6 +363,46 @@ namespace VergilBot.Modules
                     }
                     
 
+                }
+                catch (Exception e)
+                {
+                    await command.FollowupAsync(e.Message);
+                }
+            }
+            else if (command.CommandName.Equals("img2img"))
+            {
+                try
+                {
+                    await command.DeferAsync();
+                    var sd = new StableDiffusion();
+
+                    var userPrompt = command.Data.Options.ElementAt(0).Value.ToString();
+                    var userImage = command.Data.Options.ElementAt(1).Value;
+
+                    var attachmentOption = userImage as IAttachment;
+
+                    if (attachmentOption.Url.EndsWith(".png") || attachmentOption.Url.EndsWith(".jpg") ||
+                        attachmentOption.Url.EndsWith(".jpeg"))
+                    {
+                        var generatedImageBytes = await sd.Img2Img(userPrompt, attachmentOption);
+                        
+                        var embed = new EmbedBuilder()
+                            .WithTitle($"Your image is ready (Img2Img)")
+                            .WithDescription(command.Data.Options.First().Value.ToString())
+                            .WithImageUrl("attachment://generated_image.png")
+                            .WithCurrentTimestamp()
+                            .WithFooter($"{command.User.Username}", command.User.GetAvatarUrl())
+                            .Build();
+
+                        var memoryStream = new MemoryStream(generatedImageBytes);
+
+                        await command.FollowupWithFileAsync(memoryStream, "generated_image.png", embed: embed,
+                            ephemeral: false);
+                    }
+                    else
+                    {
+                        throw new Exception("The uploaded attachment is not a supported image format.");
+                    }
                 }
                 catch (Exception e)
                 {
@@ -475,6 +510,12 @@ namespace VergilBot.Modules
                 .AddOption("prompt", ApplicationCommandOptionType.String, "your prompt", true)
                 .AddOption("qr", ApplicationCommandOptionType.Attachment, "your qr code", true);
 
+            var imageGenerationImg2Img = new SlashCommandBuilder()
+                .WithName("img2img")
+                .WithDescription("Change your image")
+                .AddOption("prompt", ApplicationCommandOptionType.String, "your prompt", true)
+                .AddOption("image", ApplicationCommandOptionType.Attachment, "your image", true);
+
             try
             {
                 await _client.CreateGlobalApplicationCommandAsync(globalCommand.Build());
@@ -491,6 +532,7 @@ namespace VergilBot.Modules
                 await _client.CreateGlobalApplicationCommandAsync(chatGpt.Build());
                 await _client.CreateGlobalApplicationCommandAsync(imageGeneration.Build());
                 await _client.CreateGlobalApplicationCommandAsync(controlNetGeneration.Build());
+                await _client.CreateGlobalApplicationCommandAsync(imageGenerationImg2Img.Build());
             }
             catch (HttpException e)
             {
