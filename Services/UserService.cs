@@ -115,6 +115,12 @@ public class UserService : IUserService
         
         return embed;
     }
+
+    public async Task<decimal> GetBalanceNormal(IUser user)
+    {
+        var userReturned = await _user.GetUserById(user.Id.ToString());
+        return userReturned.Balance;
+    }
 }
 
 public interface IUserService
@@ -122,5 +128,6 @@ public interface IUserService
     Task<Embed> GetBalance(IUser user);
     Task<Embed> Register(IUser user);
     Task<Embed> Transact(IUser user, TransactionType typeOfTransaction, decimal balance);
+    Task<decimal> GetBalanceNormal(IUser user);
 }
 

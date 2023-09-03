@@ -49,7 +49,8 @@ class Program
             .AddSingleton<slashCommands>()
             .AddScoped<ChatGpt>()
             .AddSingleton<CommandService>()
-            .AddTransient<IUserValidationService, UserValidationService>();
+            .AddTransient<IUserValidationService, UserValidationService>()
+            .AddTransient<IDiceService, DiceService>();
 
         _services = _collection.BuildServiceProvider();
         

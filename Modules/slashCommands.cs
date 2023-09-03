@@ -20,13 +20,15 @@ namespace VergilBot.Modules
         private ChatGpt _chatGpt;
         private IConfigurationRoot _configurationRoot;
         private IUserService _userService;
+        private readonly IDiceService _dice;
 
-        public slashCommands(DiscordSocketClient _client, CommandService _commands, ChatGpt chatGptInstance, IUserService userService) 
+        public slashCommands(DiscordSocketClient _client, CommandService _commands, ChatGpt chatGptInstance, IUserService userService, IDiceService diceService) 
         { 
             this._client = _client;
             this._commands = _commands;
             _chatGpt = chatGptInstance;
             _userService = userService;
+            _dice = diceService;
         }
 
         public async Task InstallSlashCommandsAsync()
@@ -220,36 +222,45 @@ namespace VergilBot.Modules
             
             if (command.Data.Name.Equals("dice"))
             {
-                var bet = (double)command.Data.Options.ElementAt(0).Value;
+                try
+                {
+                    await command.DeferAsync();
+                    var bet = Decimal.Parse(command.Data.Options.ElementAt(0).Value.ToString());
 
-                var user = command.User;
+                    var user = command.User;
 
-                var gamba = new GambaModule(bet, user);
-                var result = gamba.StartGame();
+                    var result = await _dice.StartDice1(user, bet);
 
-                await command.RespondAsync(embed: result.Build());
+                    await command.FollowupAsync(embed: result);
 
-                return;
+                    return;
+                }
+                catch (Exception e)
+                {
+                    await command.FollowupAsync(e.Message);
+                }
             }
             
             if (command.Data.Name.Equals("dice2"))
             {
-                var s = command.Data.Options.FirstOrDefault();
-                var chance = (double)command.Data.Options.ElementAtOrDefault(1).Value;
+                try
+                {
+                    await command.DeferAsync();
+                    var bet = Decimal.Parse(command.Data.Options.ElementAt(0).Value.ToString());
+                    var chances = (double)command.Data.Options.ElementAt(1).Value;
 
-                //Console.WriteLine("Chance is:" +chance);
+                    var user = command.User;
 
-                var user = command.User;
-                var bet = (double)s.Value;
+                    var result = await _dice.StartDice2(user, bet, chances);
 
-                var gamba = new dice2(bet, user, chance);
-                var result = gamba.StartGame();
+                    await command.FollowupAsync(embed: result);
 
-
-
-                await command.RespondAsync(embed: result.Build());
-
-                return;
+                    return;
+                }
+                catch (Exception e)
+                {
+                    await command.FollowupAsync(e.Message);
+                }
             }
             
             if (command.CommandName.Equals("chat"))
