@@ -24,7 +24,8 @@ namespace VergilBot.Modules
         {
             _url = "http://127.0.0.1:7860";
             _sampler = "DPM++ 2M Karras";
-            _negativePrompt = "(worst quality:1.3), (low quality:1.3), (lowres:1.1), (monochrome:1.1), (greyscale), multiple views, comic, sketch, animal ears, pointy ears, (blurry:1.1), transparent, see-through,";
+            _negativePrompt = "(worst quality:1.3), (low quality:1.3), (lowres:1.1), (monochrome:1.1), (greyscale), multiple views, comic, sketch, (blurry:1.1), transparent, see-through, " +
+                              "easynegative, ng_deepnegative_v1_75t, (low quality, worst quality, lowres:1.1), text, patreon, watermark";
             infoEndpoint = $"{_url}/sdapi/v1/png-info";
             txt2imgEndpoint = $"{_url}/sdapi/v1/txt2img";
             img2imgEndpoint = $"{_url}/sdapi/v1/img2img";
@@ -290,7 +291,7 @@ namespace VergilBot.Modules
                     { "denoising_strength", 0.6},
                     { "prompt", prompt },
                     { "steps", 28 },
-                    { "sampler_index", "Euler a" },
+                    { "sampler_index", _sampler },
                     { "width", 600 },
                     { "height", 600 },
                     { "negative_prompt", _negativePrompt},
