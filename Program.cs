@@ -2,9 +2,14 @@
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using VergilBot.Modules;
+using VergilBot.Repositories;
+using VergilBot.Service.ValidationServices;
+using VergilBot.Services;
+using VergilBot.Services.Context;
 
 class Program
 {
@@ -36,17 +41,23 @@ class Program
 
         _collection = new ServiceCollection()
             .AddSingleton(_config)
-            .AddSingleton<DiscordSocketClient>();
+            .AddSingleton<IConfiguration>(configurationRoot)
+            .AddSingleton<DiscordSocketClient>()
+            .AddDbContext<VergilDbContext>(options => options.UseNpgsql(configurationRoot.GetConnectionString("DefaultConnection")), ServiceLifetime.Scoped)
+            .AddTransient<IUserRepository, UserRepository>()
+            .AddTransient<IUserService, UserService>()
+            .AddSingleton<slashCommands>()
+            .AddScoped<ChatGpt>()
+            .AddSingleton<CommandService>()
+            .AddTransient<IUserValidationService, UserValidationService>();
 
         _services = _collection.BuildServiceProvider();
         
-        _commands = new CommandService();
+        _commands = _services.GetRequiredService<CommandService>();
 
-        _client = new DiscordSocketClient(_config);
+        _client = _services.GetRequiredService<DiscordSocketClient>();
 
-        ChatGpt chatGptInstance = new ChatGpt(configurationRoot);
-
-        _slashCommands = new slashCommands(_client, _commands, chatGptInstance);
+        _slashCommands = _services.GetRequiredService<slashCommands>();
 
         //use builder to get discord token;
         string token = configurationRoot.GetSection("DISCORD_TOKEN").Value;
@@ -76,7 +87,7 @@ class Program
         await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
 
         _client.Ready += async () => await _slashCommands.InstallSlashCommandsAsync(); //slashCommands.cs handles commands
-
+        
         
         _client.SlashCommandExecuted += async (command) =>
         {

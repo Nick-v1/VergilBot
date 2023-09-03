@@ -14,9 +14,9 @@ namespace VergilBot.Modules
     {
         private string? openAiKey;
 
-        public ChatGpt(IConfigurationRoot configurationRoot) 
+        public ChatGpt(IConfiguration configuration) 
         {
-            openAiKey = configurationRoot.GetSection("OPENAI_TOKEN").Value;
+            openAiKey = configuration.GetSection("OPENAI_TOKEN").Value;
         }
 
 

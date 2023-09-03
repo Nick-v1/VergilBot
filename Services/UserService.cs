@@ -1,21 +1,33 @@
 ﻿using Discord;
 using VergilBot.Models;
-using VergilBot.Modules;
+using VergilBot.Repositories;
+using VergilBot.Service.ValidationServices;
 
 namespace VergilBot.Services;
 
-public class UserService
+public class UserService : IUserService
 {
-    
-    public UserService()
+    private readonly IUserRepository _user;
+    private readonly IUserValidationService _validation;
+
+    public UserService(IUserRepository userRepository, IUserValidationService validationService)
     {
-        
+        _user = userRepository;
+        _validation = validationService;
     }
 
-    public Embed Register(IUser user)
+    public async Task<Embed> Register(IUser user)
     {
         try
         {
+            var validation = await _validation.ValidateForRegistration(user);
+
+            if (!validation.Success)
+            {
+                return new EmbedBuilder().WithTitle(validation.Message).WithFooter(user.Username, user.GetAvatarUrl()).WithCurrentTimestamp().Build();
+            }
+            
+            
             var userModel = new User
             {
                 Username = user.Username,
@@ -24,13 +36,7 @@ public class UserService
                 HasSubscription = false,
             };
 
-            var db = new elephantSql();
-            var result = db.Register(userModel);
-
-            if (result.Equals("You are already registered!"))
-            {
-                return new EmbedBuilder().WithTitle(result).Build();
-            }
+            await _user.Register(userModel);
 
             var emb = new EmbedBuilder()
                 .WithTitle("Successfully Registered")
@@ -51,28 +57,23 @@ public class UserService
         }
     }
 
-    public Embed GetBalance(IUser user)
+    public async Task<Embed> GetBalance(IUser user)
     {
-        var sql = new elephantSql();
-        var userbalance = sql.CheckBalance(user.Id.ToString());
 
-        
-        if (userbalance.Equals(0.123456789d))
-        {
-            var embederror = new EmbedBuilder()
-                .WithAuthor("You are not registered.")
-                .WithColor(Color.Red)
-                .Build();
-
-            return embederror;
-        }
+        var userDb = await _user.GetUserById(user.Id.ToString());
 
         var embed = new EmbedBuilder()
-            .WithAuthor($"Your balance is {userbalance} bloostones.", user.GetAvatarUrl())
+            .WithAuthor($"Your balance is {userDb.Balance} bloostones.", user.GetAvatarUrl())
             .WithColor(Color.DarkTeal)
             .Build();
         
         return embed;
     }
+}
+
+public interface IUserService
+{
+    Task<Embed> GetBalance(IUser user);
+    Task<Embed> Register(IUser user);
 }
 

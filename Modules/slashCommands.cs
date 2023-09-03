@@ -18,12 +18,14 @@ namespace VergilBot.Modules
         private CommandService _commands;
         private ChatGpt _chatGpt;
         private IConfigurationRoot _configurationRoot;
+        private IUserService _userService;
 
-        public slashCommands(DiscordSocketClient _client, CommandService _commands, ChatGpt chatGptInstance) 
+        public slashCommands(DiscordSocketClient _client, CommandService _commands, ChatGpt chatGptInstance, IUserService userService) 
         { 
             this._client = _client;
             this._commands = _commands;
             _chatGpt = chatGptInstance;
+            _userService = userService;
         }
 
         public async Task InstallSlashCommandsAsync()
@@ -156,14 +158,36 @@ namespace VergilBot.Modules
             }
             else if (command.Data.Name.Equals("register"))
             {
-                IUser user = command.User;
+                try
+                {
+                    IUser user = command.User;
 
-                var service = new UserService();
-                var result = service.Register(user);
+                    var embedReply = await _userService.Register(user);
 
-                await command.RespondAsync(embed: result);
+                    await command.RespondAsync(embed: embedReply);
+                }
+                catch (Exception e)
+                {
+                    await command.RespondAsync(embed: new EmbedBuilder().WithDescription(e.Message).Build());
+                }
+            }
+            else if (command.CommandName.Equals("balance"))
+            {
+                try
+                {
+                    var user = command.User as IUser;
+                    await command.DeferAsync();
 
-                return;
+                    var balance = await _userService.GetBalance(user);
+
+                    await command.FollowupAsync(embed: balance);
+
+                    return;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
             }
             else if (command.Data.Name.Equals("deposit"))
             {
@@ -221,18 +245,6 @@ namespace VergilBot.Modules
 
 
                 await command.RespondAsync(embed: result.Build());
-
-                return;
-            }
-            else if (command.CommandName.Equals("balance"))
-            {
-                var user = command.User;
-                await command.DeferAsync();
-
-                var service = new UserService();
-                var embd = service.GetBalance(user);
-
-                await command.FollowupAsync(embed: embd);
 
                 return;
             }

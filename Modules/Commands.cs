@@ -3,6 +3,7 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using System.Text;
+using VergilBot.Repositories;
 
 namespace VergilBot.Modules
 {
@@ -11,6 +12,14 @@ namespace VergilBot.Modules
     /// </summary>
     public class Commands : ModuleBase<SocketCommandContext>
     {
+        private readonly IUserRepository _userRepository;
+
+        public Commands(IUserRepository userRepository)
+        {
+            _userRepository = userRepository;
+        }
+
+        
         [Command("ping")]
         public async Task Ping()
         {
