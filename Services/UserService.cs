@@ -2,6 +2,7 @@
 using VergilBot.Models;
 using VergilBot.Repositories;
 using VergilBot.Service.ValidationServices;
+using VergilBot.Services.ValidationServices.EnumsAndResponseTemplate;
 
 namespace VergilBot.Services;
 
@@ -24,7 +25,7 @@ public class UserService : IUserService
 
             if (!validation.Success)
             {
-                return new EmbedBuilder().WithTitle(validation.Message).WithFooter(user.Username, user.GetAvatarUrl()).WithCurrentTimestamp().Build();
+                return new EmbedBuilder().WithTitle(validation.Message).WithFooter(user.Username, user.GetAvatarUrl()).WithCurrentTimestamp().WithColor(Color.Red).Build();
             }
             
             
@@ -57,13 +58,58 @@ public class UserService : IUserService
         }
     }
 
+    public async Task<Embed> Transact(IUser user, TransactionType typeOfTransaction, decimal balance)
+    {
+        var (validation, userReturned) = await _validation.ValidateUserExistence(user);
+
+        if (!validation.Success)
+        {
+            return new EmbedBuilder().WithTitle(validation.Message).WithFooter(user.Username, user.GetAvatarUrl()).WithCurrentTimestamp().WithColor(Color.Red).Build();
+        }
+        
+        if (typeOfTransaction.Equals(TransactionType.Deposit))
+        {
+            var newBalance = userReturned!.Balance + balance;
+            await _user.Transact(userReturned, newBalance);
+            return new EmbedBuilder().WithTitle("Successful Deposit").WithDescription($"{balance} bloodstones has been credited into your account!\n" +
+                $"You now have {userReturned.Balance} bloodstones").WithColor(Color.Green).Build();
+        }
+        
+        if (typeOfTransaction.Equals(TransactionType.Withdrawal))
+        {
+            throw new NotImplementedException();
+        }
+        
+        if (typeOfTransaction.Equals(TransactionType.WonBet))
+        {
+            var newBalance = userReturned!.Balance + balance;
+            await _user.Transact(userReturned, newBalance);
+            return new EmbedBuilder().WithTitle("Won Bet!").WithDescription($"You have won the bet!")
+                .WithColor(Color.Green).WithCurrentTimestamp().WithFooter(user.Username, user.GetAvatarUrl()).Build();
+        }
+
+        if (typeOfTransaction.Equals(TransactionType.LostBet))
+        {
+            var newBalance = userReturned!.Balance - balance;
+            await _user.Transact(userReturned, newBalance);
+            return new EmbedBuilder().WithTitle("Lost Bet.").WithDescription($"You have lost the bet.")
+                .WithColor(Color.Green).WithCurrentTimestamp().WithFooter(user.Username, user.GetAvatarUrl()).Build();
+        }
+
+        throw new SystemException("Unhandled case");
+    }
+
     public async Task<Embed> GetBalance(IUser user)
     {
+        var (validation, returnedUser) = await _validation.ValidateUserExistence(user);
 
-        var userDb = await _user.GetUserById(user.Id.ToString());
+        if (!validation.Success)
+        {
+            return new EmbedBuilder().WithTitle(validation.Message).WithColor(Color.Red).WithFooter(user.Username, user.GetAvatarUrl()).Build();
+        }
 
         var embed = new EmbedBuilder()
-            .WithAuthor($"Your balance is {userDb.Balance} bloostones.", user.GetAvatarUrl())
+            .WithAuthor($"Your balance is {returnedUser!.Balance} bloodstones.", user.GetAvatarUrl())
             .WithColor(Color.DarkTeal)
             .Build();
         
@@ -75,5 +121,6 @@ public interface IUserService
 {
     Task<Embed> GetBalance(IUser user);
     Task<Embed> Register(IUser user);
+    Task<Embed> Transact(IUser user, TransactionType typeOfTransaction, decimal balance);
 }
 

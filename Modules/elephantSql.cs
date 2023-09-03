@@ -92,37 +92,6 @@ namespace VergilBot.Modules
             }
         }
 
-        public string Register(User user) {
-            var connectionString = Get();
-
-            try
-            {
-                using var conn = new NpgsqlConnection(connectionString);
-
-                conn.Open();
-
-                var sql = "INSERT INTO user_accounts (username, balance, discord_account_id, hassubscription) VALUES (@username, @balance, @discord_account_id, @hassubscription)";
-
-                using var cmd = new NpgsqlCommand(sql, conn);
-
-                cmd.Parameters.AddWithValue("username", user.Username);
-                cmd.Parameters.AddWithValue("balance", 1000.50);
-                cmd.Parameters.AddWithValue("discord_account_id", user.DiscordId);
-                cmd.Parameters.AddWithValue("hassubscription", user.HasSubscription);
-                
-                var rowsAffected = cmd.ExecuteNonQuery();
-
-                return "Successfully registered!";
-            }
-            catch (PostgresException e)
-            {
-                if (e.SqlState.Equals("23505"))
-                    return "You are already registered!";
-                
-                throw new Exception(e.Message);
-            }
-        }
-
         public double CheckBalance(string discordID)
         {
             var connString = Get();

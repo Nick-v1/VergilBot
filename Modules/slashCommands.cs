@@ -9,6 +9,7 @@ using Discord.Commands;
 using Microsoft.Extensions.Configuration;
 using VergilBot.Service.ValidationServices;
 using VergilBot.Services;
+using VergilBot.Services.ValidationServices.EnumsAndResponseTemplate;
 
 namespace VergilBot.Modules
 {
@@ -42,7 +43,8 @@ namespace VergilBot.Modules
                 await command.RespondAsync(quote);
                 return;
             }
-            else if (command.Data.Name.Equals("weather"))
+            
+            if (command.Data.Name.Equals("weather"))
             {
                 var city = command.Data.Options.First().Value.ToString();
 
@@ -81,7 +83,8 @@ namespace VergilBot.Modules
                 return;
 
             }
-            else if (command.Data.Name.Equals("help"))
+            
+            if (command.Data.Name.Equals("help"))
             {
                 var e = _client.GetGlobalApplicationCommandsAsync().Result;
                 var normalcommands = _commands.Commands;
@@ -112,7 +115,8 @@ namespace VergilBot.Modules
                 await command.RespondAsync(embed: emb.Build());
                 return;
             }
-            else if (command.Data.Name.Equals("banmepls"))
+            
+            if (command.Data.Name.Equals("banmepls"))
             {
                 var e = command.User as IUser;
                 var guild = _client.GetGuild(command.GuildId.Value);
@@ -129,7 +133,8 @@ namespace VergilBot.Modules
                 await guild.RemoveBanAsync(e);
                 return;
             }
-            else if (command.Data.Name.Equals("leledometro"))
+            
+            if (command.Data.Name.Equals("leledometro"))
             {
 
                 var freedomDay = new DateTime(2023, 06, 08);
@@ -141,7 +146,8 @@ namespace VergilBot.Modules
 
                 return;
             }
-            else if (command.Data.Name.Equals("reddit"))
+            
+            if (command.Data.Name.Equals("reddit"))
             {
 
                 var subreddit = command.Data.Options.First().Value.ToString();
@@ -156,7 +162,8 @@ namespace VergilBot.Modules
                 return;
 
             }
-            else if (command.Data.Name.Equals("register"))
+            
+            if (command.Data.Name.Equals("register"))
             {
                 try
                 {
@@ -171,7 +178,8 @@ namespace VergilBot.Modules
                     await command.RespondAsync(embed: new EmbedBuilder().WithDescription(e.Message).Build());
                 }
             }
-            else if (command.CommandName.Equals("balance"))
+            
+            if (command.CommandName.Equals("balance"))
             {
                 try
                 {
@@ -189,47 +197,42 @@ namespace VergilBot.Modules
                     Console.WriteLine(e.Message);
                 }
             }
-            else if (command.Data.Name.Equals("deposit"))
+            
+            if (command.Data.Name.Equals("deposit"))
             {
-                var s = new elephantSql();
-                IUser user = command.User;
+                try
+                {
+                    await command.DeferAsync();
+                    IUser user = command.User;
+                    var fundsToAdd = Decimal.Parse(command.Data.Options.ElementAt(0).Value.ToString());
 
-                double fundsToAdd = (double)command.Data.Options.First().Value;
+                    var embedbalance = await _userService.Transact(user, TransactionType.Deposit, fundsToAdd);
 
-                s.transact(user.Id.ToString(), command.CommandName, fundsToAdd);
-                var balance = s.CheckBalance(user.Id.ToString());
+                    await command.FollowupAsync(embed: embedbalance);
 
-                var embedbalance = new EmbedBuilder()
-                    .WithTitle("Successfully added!")
-                    .WithDescription($"You have added: {fundsToAdd} bloodstones.\n" +
-                    $"Your balance: {balance} bloodstones.")
-                    .WithColor(Color.Teal)
-                    .Build();
-
-                await command.RespondAsync(embed: embedbalance);
-
-                return;
+                    return;
+                }
+                catch (Exception e)
+                {
+                    await command.FollowupAsync(e.Message);
+                }
             }
-            else if (command.Data.Name.Equals("dice"))
+            
+            if (command.Data.Name.Equals("dice"))
             {
-                var s = command.Data.Options.FirstOrDefault();
-                //var chance = (double) command.Data.Options.ElementAtOrDefault(1).Value;
-
-                //Console.WriteLine("Chance is:" +chance);
+                var bet = (double)command.Data.Options.ElementAt(0).Value;
 
                 var user = command.User;
-                var bet = (double)s.Value;
 
                 var gamba = new GambaModule(bet, user);
                 var result = gamba.StartGame();
-
-
 
                 await command.RespondAsync(embed: result.Build());
 
                 return;
             }
-            else if (command.Data.Name.Equals("dice2"))
+            
+            if (command.Data.Name.Equals("dice2"))
             {
                 var s = command.Data.Options.FirstOrDefault();
                 var chance = (double)command.Data.Options.ElementAtOrDefault(1).Value;
@@ -248,7 +251,8 @@ namespace VergilBot.Modules
 
                 return;
             }
-            else if (command.CommandName.Equals("chat"))
+            
+            if (command.CommandName.Equals("chat"))
             {  
                 try
                 {
@@ -293,7 +297,8 @@ namespace VergilBot.Modules
                 }
                 
             }
-            else if (command.CommandName.Equals("generate"))
+            
+            if (command.CommandName.Equals("generate"))
             {
 
                 try
@@ -375,7 +380,8 @@ namespace VergilBot.Modules
                     return;
                 }
             }
-            else if (command.CommandName.Equals("generateusingcontrolnet"))
+            
+            if (command.CommandName.Equals("generateusingcontrolnet"))
             {
                 try
                 {
@@ -419,7 +425,8 @@ namespace VergilBot.Modules
                     await command.FollowupAsync(e.Message);
                 }
             }
-            else if (command.CommandName.Equals("img2img"))
+            
+            if (command.CommandName.Equals("img2img"))
             {
                 try
                 {

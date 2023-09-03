@@ -2,8 +2,9 @@
 
 public enum ErrorCode
 {
-    Failed = 0,
+    Success = 0,
     InvalidHeight = 1,
     InvalidWidth = 2,
-    InvalidHeightOrWidth = 3
+    InvalidHeightOrWidth = 3,
+    NotFound = 4
 }
