@@ -8,7 +8,14 @@ using Image = System.Drawing.Image;
 
 namespace VergilBot.Modules
 {
-    public class StableDiffusion
+    public interface IStableDiffusion
+    {
+        Task<byte[]?> GenerateImage(string prompt, int? width, int? height);
+        Task<byte[]?> UseControlNet(string prompt, IAttachment userImage);
+        Task<byte[]> Img2Img(string prompt, IAttachment userImage);
+    }
+    
+    public class StableDiffusion : IStableDiffusion
     {
         private string _url;
         private readonly int _steps;
@@ -24,7 +31,7 @@ namespace VergilBot.Modules
         {
             _url = "http://127.0.0.1:7860";
             _sampler = "DPM++ 2M Karras";
-            _negativePrompt = "(worst quality:1.3), (low quality:1.3), (lowres:1.1), (monochrome:1.1), (greyscale), multiple views, comic, sketch, (blurry:1.1), transparent, see-through, " +
+            _negativePrompt = "(worst quality:1.1), (low quality:1.1), (lowres:1.1), (monochrome:1.1), (greyscale), multiple views, comic, sketch, (blurry:1.1), transparent, " +
                               "easynegative, ng_deepnegative_v1_75t, (low quality, worst quality, lowres:1.1), text, patreon, watermark";
             infoEndpoint = $"{_url}/sdapi/v1/png-info";
             txt2imgEndpoint = $"{_url}/sdapi/v1/txt2img";
@@ -114,7 +121,7 @@ namespace VergilBot.Modules
             }
         }
 
-        public async Task<string> SaveImageLocally(Image image, string fileName)
+        private async Task<string> SaveImageLocally(Image image, string fileName)
         {
             try
             {

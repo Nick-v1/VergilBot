@@ -21,14 +21,16 @@ namespace VergilBot.Modules
         private IConfigurationRoot _configurationRoot;
         private IUserService _userService;
         private readonly IDiceService _dice;
+        private readonly IStableDiffusion _stableDiffusion;
 
-        public slashCommands(DiscordSocketClient _client, CommandService _commands, ChatGpt chatGptInstance, IUserService userService, IDiceService diceService) 
+        public slashCommands(DiscordSocketClient _client, CommandService _commands, ChatGpt chatGptInstance, IUserService userService, IDiceService diceService, IStableDiffusion stableDiffusion) 
         { 
             this._client = _client;
             this._commands = _commands;
             _chatGpt = chatGptInstance;
             _userService = userService;
             _dice = diceService;
+            _stableDiffusion = stableDiffusion;
         }
 
         public async Task InstallSlashCommandsAsync()
@@ -339,9 +341,8 @@ namespace VergilBot.Modules
                             await command.FollowupAsync(embed: embed1);
                             return;
                         }
-
-                        var sd0 = new StableDiffusion();
-                        var generatedImageBytes0 = await sd0.GenerateImage(userInput, width: width, height: height);
+                        
+                        var generatedImageBytes0 = await _stableDiffusion.GenerateImage(userInput, width: width, height: height);
                         
                         
                         var embed0 = new EmbedBuilder()
@@ -361,9 +362,8 @@ namespace VergilBot.Modules
                     
                     //await Task.Delay(3000);
                     
-                    var sd = new StableDiffusion();
 
-                    var generatedImageBytes = await sd.GenerateImage(userInput, null, null);
+                    var generatedImageBytes = await _stableDiffusion.GenerateImage(userInput, null, null);
                     
                     var embed = new EmbedBuilder()
                         .WithTitle("Your image is ready")
@@ -406,9 +406,8 @@ namespace VergilBot.Modules
 
                     if (attachmentOption.Url.EndsWith(".png"))
                     {
-                        var sd = new StableDiffusion();
 
-                        var generatedImageBytes = await sd.UseControlNet(userPrompt!, attachmentOption);
+                        var generatedImageBytes = await _stableDiffusion.UseControlNet(userPrompt!, attachmentOption);
 
                         var embed = new EmbedBuilder()
                             .WithTitle($"Your image is ready (ControlNet)")
@@ -442,7 +441,6 @@ namespace VergilBot.Modules
                 try
                 {
                     await command.DeferAsync();
-                    var sd = new StableDiffusion();
 
                     var userPrompt = command.Data.Options.ElementAt(0).Value.ToString();
                     var userImage = command.Data.Options.ElementAt(1).Value;
@@ -452,7 +450,7 @@ namespace VergilBot.Modules
                     if (attachmentOption.Url.EndsWith(".png") || attachmentOption.Url.EndsWith(".jpg") ||
                         attachmentOption.Url.EndsWith(".jpeg"))
                     {
-                        var generatedImageBytes = await sd.Img2Img(userPrompt, attachmentOption);
+                        var generatedImageBytes = await _stableDiffusion.Img2Img(userPrompt, attachmentOption);
                         
                         var embed = new EmbedBuilder()
                             .WithTitle($"Your image is ready (Img2Img)")

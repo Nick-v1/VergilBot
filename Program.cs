@@ -50,7 +50,8 @@ class Program
             .AddScoped<ChatGpt>()
             .AddSingleton<CommandService>()
             .AddTransient<IUserValidationService, UserValidationService>()
-            .AddTransient<IDiceService, DiceService>();
+            .AddTransient<IDiceService, DiceService>()
+            .AddTransient<IStableDiffusion, StableDiffusion>();
 
         _services = _collection.BuildServiceProvider();
         
