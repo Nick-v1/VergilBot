@@ -109,7 +109,7 @@ public class UserService : IUserService
         }
 
         var embed = new EmbedBuilder()
-            .WithAuthor($"Your balance is {returnedUser!.Balance} bloodstones.", user.GetAvatarUrl())
+            .WithAuthor($"Your balance is {returnedUser!.Balance.ToString("0.00")} bloodstones.", user.GetAvatarUrl())
             .WithColor(Color.DarkTeal)
             .Build();
         
