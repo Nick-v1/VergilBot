@@ -51,7 +51,8 @@ class Program
             .AddSingleton<CommandService>()
             .AddTransient<IUserValidationService, UserValidationService>()
             .AddTransient<IDiceService, DiceService>()
-            .AddTransient<IStableDiffusion, StableDiffusion>();
+            .AddTransient<IStableDiffusion, StableDiffusion>()
+            .AddTransient<IStableDiffusionValidator, StableDiffusionValidator>();
 
         _services = _collection.BuildServiceProvider();
         

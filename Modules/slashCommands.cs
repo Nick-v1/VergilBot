@@ -22,8 +22,9 @@ namespace VergilBot.Modules
         private IUserService _userService;
         private readonly IDiceService _dice;
         private readonly IStableDiffusion _stableDiffusion;
+        private readonly IStableDiffusionValidator _stableDiffusionValidator;
 
-        public slashCommands(DiscordSocketClient _client, CommandService _commands, ChatGpt chatGptInstance, IUserService userService, IDiceService diceService, IStableDiffusion stableDiffusion) 
+        public slashCommands(DiscordSocketClient _client, CommandService _commands, ChatGpt chatGptInstance, IUserService userService, IDiceService diceService, IStableDiffusion stableDiffusion, IStableDiffusionValidator diffusionValidator) 
         { 
             this._client = _client;
             this._commands = _commands;
@@ -31,6 +32,7 @@ namespace VergilBot.Modules
             _userService = userService;
             _dice = diceService;
             _stableDiffusion = stableDiffusion;
+            _stableDiffusionValidator = diffusionValidator;
         }
 
         public async Task InstallSlashCommandsAsync()
@@ -333,7 +335,8 @@ namespace VergilBot.Modules
                         var width = int.Parse(command.Data.Options.ElementAt(1).Value.ToString());
                         var height = int.Parse(command.Data.Options.ElementAt(2).Value.ToString());
                         
-                        var validation = new StableDiffusionValidator().ValidateHeightAndWidth(width, height);
+                        var validation = _stableDiffusionValidator.ValidateHeightAndWidth(width, height);
+                        
                         if (!validation.Success)
                         {
                             var embed1 = new EmbedBuilder().WithColor(Color.DarkRed).WithTitle(validation.Message).Build();

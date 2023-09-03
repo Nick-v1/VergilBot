@@ -1,8 +1,9 @@
-﻿using VergilBot.Services.ValidationServices.EnumsAndResponseTemplate;
+﻿using NsfwSpyNS;
+using VergilBot.Services.ValidationServices.EnumsAndResponseTemplate;
 
 namespace VergilBot.Service.ValidationServices;
 
-public class StableDiffusionValidator
+public class StableDiffusionValidator : IStableDiffusionValidator
 {
     public StableDiffusionValidator()
     {
@@ -24,4 +25,23 @@ public class StableDiffusionValidator
         report.Success = true;
         return report;
     }
+
+    public void ClassifyImage(string path)
+    {
+        var ns = new NsfwSpy();
+        var result = ns.ClassifyImage(@$"{path}");
+        
+        Console.WriteLine($"Results:\nHentai: {result.Hentai}\n" +
+                          $"Neutral: {result.Neutral}\n" +
+                          $"Sexy: {result.Sexy}\n" +
+                          $"Pornography: {result.Pornography}\n" +
+                          $"PredictedLabel: {result.PredictedLabel}\n" +
+                          $"IsNsfw: {result.IsNsfw}");
+    }
+}
+
+public interface IStableDiffusionValidator
+{
+    ValidationReport ValidateHeightAndWidth(int width, int height);
+    void ClassifyImage(string path);
 }

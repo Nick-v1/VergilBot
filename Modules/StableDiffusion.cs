@@ -4,6 +4,7 @@ using Discord;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using VergilBot.Models.Entities;
+using VergilBot.Service.ValidationServices;
 using Image = System.Drawing.Image;
 
 namespace VergilBot.Modules
@@ -26,8 +27,9 @@ namespace VergilBot.Modules
         private readonly string infoEndpoint;
         private readonly string txt2imgEndpoint;
         private readonly string img2imgEndpoint;
+        private readonly IStableDiffusionValidator _validator;
 
-        public StableDiffusion()
+        public StableDiffusion(IStableDiffusionValidator diffusionValidator)
         {
             _url = "http://127.0.0.1:7860";
             _sampler = "DPM++ 2M Karras";
@@ -36,6 +38,7 @@ namespace VergilBot.Modules
             infoEndpoint = $"{_url}/sdapi/v1/png-info";
             txt2imgEndpoint = $"{_url}/sdapi/v1/txt2img";
             img2imgEndpoint = $"{_url}/sdapi/v1/img2img";
+            _validator = diffusionValidator;
         }
         public async Task<byte[]?> GenerateImage(string prompt, int? width, int? height)
         {
@@ -108,6 +111,9 @@ namespace VergilBot.Modules
                     image.SetPropertyItem(property);
 
                     var path = await SaveImageLocally(image, $"generated_image_{Path.GetRandomFileName()}.png");
+
+                    
+                    _validator.ClassifyImage(path);
 
                     return imageStreamReturned;
                 }
