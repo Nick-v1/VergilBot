@@ -3,7 +3,10 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using System.Text;
+using VergilBot.Models.Misc;
 using VergilBot.Repositories;
+using VergilBot.Services;
+using VergilBot.Services.ValidationServices.EnumsAndResponseTemplate;
 
 namespace VergilBot.Modules
 {
@@ -12,13 +15,115 @@ namespace VergilBot.Modules
     /// </summary>
     public class Commands : ModuleBase<SocketCommandContext>
     {
-        private readonly IUserRepository _userRepository;
+        private readonly IUserService _userService;
 
-        public Commands(IUserRepository userRepository)
+        public Commands(IUserService userService)
         {
-            _userRepository = userRepository;
+            _userService = userService;
         }
 
+        [Command("slots")]
+        public async Task PlaySlots(int bet)
+        {
+            var firstSymbol = ThreadLocalRandom.NewRandom().Next(1, 7);
+            var secondSymbol = ThreadLocalRandom.NewRandom().Next(1, 7);
+            var thirdSymbol = ThreadLocalRandom.NewRandom().Next(1, 7);
+            var iuser = Context.User as IUser;
+            
+            var symbols = new Dictionary<string, int>
+            {
+                { "Apple", 1 },
+                { "Banana", 2 },
+                { "Cherry", 3 },
+                { "Lemons", 4 },
+                { "Strawberries", 5},
+                { "Watermelons", 6}
+            };
+            
+            var winMultipliers = new Dictionary<string, int>
+            {
+                { "Apple", 5 },
+                { "Banana", 10 },
+                { "Cherry", 15 },
+                { "Lemons", 20 },
+                { "Strawberries", 25 },
+                { "Watermelons", 30 }
+            };
+
+            if (firstSymbol == secondSymbol && secondSymbol == thirdSymbol)
+            {
+                var chosenSymbol = symbols.First(kv => kv.Value == firstSymbol).Key;
+                
+                // Get the win multiplier for the chosen symbol
+                int winMultiplier = winMultipliers[chosenSymbol];
+
+                // Replace text with emoji representation
+                string chosenEmoji = GetEmojiRepresentation(chosenSymbol);
+                
+                // Calculate the winnings based on the bet and win multiplier
+                int winnings = bet * winMultiplier;
+                int winningsAfterBet = winnings - bet;
+
+                var embed = await _userService.Transact(iuser, TransactionType.WonBet, winningsAfterBet);
+                var embedbuilder = embed.ToEmbedBuilder();
+
+                embedbuilder.Title = $"{chosenEmoji} | {chosenEmoji} | {chosenEmoji}";
+                embedbuilder.WithAuthor("Slots", @"https://cdn-icons-png.flaticon.com/512/287/287230.png");
+                embedbuilder.WithFooter(Context.Client.CurrentUser.ToString(), Context.Client.CurrentUser.GetAvatarUrl());
+                var balance = await _userService.GetBalanceNormal(iuser);
+                embedbuilder.Description = $"Win: {winnings} bloodstones\n" +
+                                           $"Symbol Multiplier: {winMultiplier}x\n" +
+                                           $"Profit: {winningsAfterBet} bloodstones\n" +
+                                           $"Balance: {balance:0.00} 💎🩸";
+                
+
+                await ReplyAsync(embed: embedbuilder.Build());
+            }
+            else
+            {
+                var firstSymbolString = symbols.First(kv => kv.Value == firstSymbol).Key;
+                var secondSymbolString = symbols.First(kv => kv.Value == secondSymbol).Key;
+                var thirdSymbolString = symbols.First(kv => kv.Value == thirdSymbol).Key;
+
+                // Replace text with emoji representation
+                string firstEmoji = GetEmojiRepresentation(firstSymbolString);
+                string secondEmoji = GetEmojiRepresentation(secondSymbolString);
+                string thirdEmoji = GetEmojiRepresentation(thirdSymbolString);
+
+                var embed = await _userService.Transact(iuser, TransactionType.LostBet, bet);
+                var balance = await _userService.GetBalanceNormal(iuser);
+                var embedbuilder = embed.ToEmbedBuilder();
+
+                embedbuilder.Title = $"{firstEmoji} | {secondEmoji} | {thirdEmoji}";
+                embedbuilder.WithAuthor("Slots", @"https://cdn-icons-png.flaticon.com/512/287/287230.png");
+                embedbuilder.WithFooter(Context.Client.CurrentUser.ToString(), Context.Client.CurrentUser.GetAvatarUrl());
+                embedbuilder.Description = $"You have lost {bet} bloodstones\n" +
+                                           $"Balance: {balance} 💎🩸";
+
+                await ReplyAsync(embed: embedbuilder.Build());
+            }
+        }
+        
+        private string GetEmojiRepresentation(string symbol)
+        {
+            switch (symbol)
+            {
+                case "Apple":
+                    return "🍏";
+                case "Banana":
+                    return "🍌";
+                case "Cherry":
+                    return "🍒";
+                case "Lemons":
+                    return "🍋";
+                case "Strawberries":
+                    return "🍓";
+                case "Watermelons":
+                    return "🍉";
+                default:
+                    return string.Empty;
+            }
+        }
         
         [Command("ping")]
         public async Task Ping()

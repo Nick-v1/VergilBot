@@ -43,8 +43,8 @@ public class DiceService : IDiceService
         bool win = roll <= chance;
         double payout = 0.0;
 
-        embed.WithFooter($"Chances above: {roll.ToString("0.00")}% win\n" +
-                         $"Your chances: {chance.ToString("0.00")}% of winning", user.GetAvatarUrl());
+        embed.WithFooter($"Chances above: {roll:0.00}% win\n" +
+                         $"Your chances: {chance:0.00}% of winning", user.GetAvatarUrl());
 
         double multiplier = minChance / (chance / maxChance);
 
@@ -55,10 +55,10 @@ public class DiceService : IDiceService
             
             await _userService.Transact(user, TransactionType.WonBet, (decimal) payoutAfterBet);
             
-            Console.WriteLine($"\n{user.Username}#{user.Discriminator} played with {bet} and won {payout} bloodstones with a multiplier of {multiplier.ToString("0.00")}!");
+            Console.WriteLine($"\n{user.Username}#{user.Discriminator} played with {bet} and won {payout} bloodstones with a multiplier of {multiplier:0.00}!");
             
-            embed.WithDescription($"You have won {(payout).ToString("0.00")} bloodstones! (Profit on win: {payoutAfterBet.ToString("0.00")}).\n" +
-                                  $"Winning multiplier: {multiplier.ToString("0.00")}")
+            embed.WithDescription($"You have won {(payout):0.00} bloodstones! (Profit on win: {payoutAfterBet:0.00}).\n" +
+                                  $"Winning multiplier: {multiplier:0.00}")
                 .WithColor(Color.Green)
                 .WithTitle("Win!");
 
@@ -67,12 +67,12 @@ public class DiceService : IDiceService
         
         await _userService.Transact(user, TransactionType.LostBet, bet);
         
-        Console.WriteLine($"\n{user.Username}#{user.Discriminator} lost the bet of {bet} bloostones. Potential multiplier: {multiplier.ToString("0.00")}");
+        Console.WriteLine($"\n{user.Username}#{user.Discriminator} lost the bet of {bet} bloostones. Potential multiplier: {multiplier:0.00}");
 
         var balance = await _userService.GetBalanceNormal(user);
         
-        embed.WithDescription($"You have lost {bet} bloodstones. Your new balance is: {balance.ToString("0.00")}.\n" +
-                              $"Potential multiplier was: {multiplier.ToString("0.00")}")
+        embed.WithDescription($"You have lost {bet} bloodstones. Your new balance is: {balance:0.00}.\n" +
+                              $"Potential multiplier was: {multiplier:0.00}")
             .WithColor(Color.Red)
             .WithTitle("Lose");
 
@@ -100,8 +100,8 @@ public class DiceService : IDiceService
         bool win = roll <= chance;
         double payout = 0.0;
         
-        embed.WithFooter($"Chances above: {roll.ToString("0.00")}% win\n" +
-                         $"Your chances: {chance.ToString("0.00")}% of winning", user.GetAvatarUrl());
+        embed.WithFooter($"Chances above: {roll:0.00}% win\n" +
+                         $"Your chances: {chance:0.00}% of winning", user.GetAvatarUrl());
 
         double multiplier = minChance / (chance / maxChance);
 
@@ -112,10 +112,10 @@ public class DiceService : IDiceService
             
             await _userService.Transact(user, TransactionType.WonBet, (decimal) payoutAfterBet);
             
-            Console.WriteLine($"\n{user.Username}#{user.Discriminator} played with {bet} and won {payout} bloodstones with a multiplier of {multiplier.ToString("0.00")}!");
+            Console.WriteLine($"\n{user.Username}#{user.Discriminator} played with {bet} and won {payout} bloodstones with a multiplier of {multiplier:0.00}!");
             
-            embed.WithDescription($"You have won {(payout).ToString("0.00")} bloodstones! (Profit on win: {payoutAfterBet.ToString("0.00")}).\n" +
-                                  $"Winning multiplier: {multiplier.ToString("0.00")}")
+            embed.WithDescription($"You have won {(payout):0.00} bloodstones! (Profit on win: {payoutAfterBet:0.00}).\n" +
+                                  $"Winning multiplier: {multiplier:0.00}")
                 .WithColor(Color.Green)
                 .WithTitle("Win!");
 
@@ -124,12 +124,12 @@ public class DiceService : IDiceService
         
         await _userService.Transact(user, TransactionType.LostBet, bet);
         
-        Console.WriteLine($"\n{user.Username}#{user.Discriminator} lost the bet of {bet} bloostones. Potential multiplier: {multiplier.ToString("0.00")}");
+        Console.WriteLine($"\n{user.Username}#{user.Discriminator} lost the bet of {bet} bloostones. Potential multiplier: {multiplier:0.00}");
 
         var balance = await _userService.GetBalanceNormal(user);
         
-        embed.WithDescription($"You have lost {bet} bloodstones. Your new balance is: {balance.ToString("0.00")}.\n" +
-                              $"Potential multiplier was: {multiplier.ToString("0.00")}")
+        embed.WithDescription($"You have lost {bet} bloodstones. Your new balance is: {balance:0.00}.\n" +
+                              $"Potential multiplier was: {multiplier:0.00}")
             .WithColor(Color.Red)
             .WithTitle("Lose");
 

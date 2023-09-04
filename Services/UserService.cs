@@ -93,7 +93,7 @@ public class UserService : IUserService
             var newBalance = userReturned!.Balance - balance;
             await _user.Transact(userReturned, newBalance);
             return new EmbedBuilder().WithTitle("Lost Bet.").WithDescription($"You have lost the bet.")
-                .WithColor(Color.Green).WithCurrentTimestamp().WithFooter(user.Username, user.GetAvatarUrl()).Build();
+                .WithColor(Color.Red).WithCurrentTimestamp().WithFooter(user.Username, user.GetAvatarUrl()).Build();
         }
 
         throw new SystemException("Unhandled case");
