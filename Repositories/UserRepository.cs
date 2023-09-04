@@ -4,6 +4,13 @@ using VergilBot.Services.Context;
 
 namespace VergilBot.Repositories;
 
+public interface IUserRepository
+{
+    Task<User?> GetUserById(string id);
+    Task<User?> Register(User user);
+    Task Transact(User user, decimal balance);
+}
+
 public class UserRepository : IUserRepository
 {
     private readonly VergilDbContext _context;
@@ -33,11 +40,4 @@ public class UserRepository : IUserRepository
 
     
    
-}
-
-public interface IUserRepository
-{
-    Task<User?> GetUserById(string id);
-    Task<User?> Register(User user);
-    Task Transact(User user, decimal balance);
 }

@@ -5,6 +5,12 @@ using VergilBot.Services.ValidationServices.EnumsAndResponseTemplate;
 
 namespace VergilBot.Service.ValidationServices;
 
+public interface IUserValidationService
+{
+    Task<ValidationReport> ValidateForRegistration(IUser discordUser);
+    Task<(ValidationReport, User?)> ValidateUserExistence(IUser discordUser);
+}
+
 public class UserValidationService : IUserValidationService
 {
     private readonly IUserRepository _repo;
@@ -47,10 +53,4 @@ public class UserValidationService : IUserValidationService
         report.Success = true;
         return (report, user);
     }
-}
-
-public interface IUserValidationService
-{
-    Task<ValidationReport> ValidateForRegistration(IUser discordUser);
-    Task<(ValidationReport, User?)> ValidateUserExistence(IUser discordUser);
 }

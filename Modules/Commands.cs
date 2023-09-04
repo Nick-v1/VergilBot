@@ -5,6 +5,7 @@ using Discord.WebSocket;
 using System.Text;
 using VergilBot.Models.Misc;
 using VergilBot.Repositories;
+using VergilBot.Service.ValidationServices;
 using VergilBot.Services;
 using VergilBot.Services.ValidationServices.EnumsAndResponseTemplate;
 
@@ -16,10 +17,12 @@ namespace VergilBot.Modules
     public class Commands : ModuleBase<SocketCommandContext>
     {
         private readonly IUserService _userService;
+        private readonly IUserValidationService _validation;
 
-        public Commands(IUserService userService)
+        public Commands(IUserService userService, IUserValidationService userValidationService)
         {
             _userService = userService;
+            _validation = userValidationService;
         }
 
         [Command("slots")]
@@ -29,11 +32,20 @@ namespace VergilBot.Modules
             var secondSymbol = ThreadLocalRandom.NewRandom().Next(1, 7);
             var thirdSymbol = ThreadLocalRandom.NewRandom().Next(1, 7);
             var iuser = Context.User as IUser;
-            var startBalance = await _userService.GetBalanceNormal(iuser);
+
+            var (validation, user) = await _validation.ValidateUserExistence(iuser);
+
+            if (!validation.Success)
+            {
+                await ReplyAsync("You are not registered: "+iuser.Mention);
+                return;
+            }
+
+            var startBalance = user!.Balance;
 
             if (startBalance < bet)
             {
-                await ReplyAsync("Your bet is higher than your balance.");
+                await ReplyAsync("Your bet is higher than your balance. "+iuser.Mention);
                 return;
             }
             
@@ -82,18 +94,9 @@ namespace VergilBot.Modules
                     await _userService.Transact(iuser, TransactionType.WonBet, (decimal)bet * (surprisedMultiplierValue + winMultiplier) - bet);
                     var balanceSurprise = await _userService.GetBalanceNormal(iuser);
 
-                    var embedbuilderSurprise = new EmbedBuilder();
-                    embedbuilderSurprise.Title = $"{chosenEmoji} | {chosenEmoji} | {chosenEmoji}  -  JACKPOT!";
-                    embedbuilderSurprise.WithAuthor("Slots", @"https://cdn-icons-png.flaticon.com/512/287/287230.png");
-                    embedbuilderSurprise.WithFooter(Context.Client.CurrentUser.ToString(), Context.Client.CurrentUser.GetAvatarUrl());
-                    embedbuilderSurprise.Description = $"Symbol Multiplier: {winMultiplier}x\n" +
-                                                       $"Surprise Multiplier Activated! {surprisedMultiplierValue}x\n" +
-                                                       $"Final Multiplier: {surprisedMultiplierValue + winMultiplier}x\n" +
-                                                       $"Final Win: {bet * (surprisedMultiplierValue + winMultiplier)} bloodstones\n" +
-                                                       $"Profit: {(bet * (surprisedMultiplierValue + winMultiplier)) - bet} bloodstones\n" +
-                                                       $"Balance: {balanceSurprise:0.00} 💎🩸";
-                    embedbuilderSurprise.WithColor(Color.Gold);
-                    await ReplyAsync(embed: embedbuilderSurprise.Build());
+                    var jackpotEmbed = CreateJackpotEmbed(chosenEmoji, winMultiplier, surprisedMultiplierValue, bet, balanceSurprise);
+                    
+                    await ReplyAsync(embed: jackpotEmbed.Build());
                     return;
                 }
 
@@ -134,7 +137,7 @@ namespace VergilBot.Modules
                 embedbuilder.WithAuthor("Slots", @"https://cdn-icons-png.flaticon.com/512/287/287230.png");
                 embedbuilder.WithFooter(Context.Client.CurrentUser.ToString(), Context.Client.CurrentUser.GetAvatarUrl());
                 embedbuilder.Description = $"You have lost {bet} bloodstones\n" +
-                                           $"Balance: {balance} 💎🩸";
+                                           $"Balance: {balance:0.00} 💎🩸";
 
                 await ReplyAsync(embed: embedbuilder.Build());
             }
@@ -160,6 +163,24 @@ namespace VergilBot.Modules
                     return string.Empty;
             }
         }
+        
+        public EmbedBuilder CreateJackpotEmbed(string chosenEmoji, int winMultiplier, int surprisedMultiplierValue, int bet, decimal balanceSurprise)
+        {
+            var embedbuilderSurprise = new EmbedBuilder();
+            embedbuilderSurprise.Title = $"{chosenEmoji} | {chosenEmoji} | {chosenEmoji}  -  JACKPOT!";
+            embedbuilderSurprise.WithAuthor("Slots", @"https://cdn-icons-png.flaticon.com/512/287/287230.png");
+            embedbuilderSurprise.WithFooter(Context.Client.CurrentUser.ToString(), Context.Client.CurrentUser.GetAvatarUrl());
+            embedbuilderSurprise.Description = $"Symbol Multiplier: {winMultiplier}x\n" +
+                                               $"Surprise Multiplier Activated! {surprisedMultiplierValue}x\n" +
+                                               $"Final Multiplier: {surprisedMultiplierValue + winMultiplier}x\n" +
+                                               $"Final Win: {bet * (surprisedMultiplierValue + winMultiplier)} bloodstones\n" +
+                                               $"Profit: {(bet * (surprisedMultiplierValue + winMultiplier)) - bet} bloodstones\n" +
+                                               $"Balance: {balanceSurprise:0.00} 💎🩸";
+            embedbuilderSurprise.WithColor(Color.Gold);
+
+            return embedbuilderSurprise;
+        }
+
         
         [Command("ping")]
         public async Task Ping()

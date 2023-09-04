@@ -6,6 +6,14 @@ using VergilBot.Services.ValidationServices.EnumsAndResponseTemplate;
 
 namespace VergilBot.Services;
 
+public interface IUserService
+{
+    Task<Embed> GetBalance(IUser user);
+    Task<Embed> Register(IUser user);
+    Task<Embed> Transact(IUser user, TransactionType typeOfTransaction, decimal balance);
+    Task<decimal> GetBalanceNormal(IUser user);
+}
+
 public class UserService : IUserService
 {
     private readonly IUserRepository _user;
@@ -123,11 +131,4 @@ public class UserService : IUserService
     }
 }
 
-public interface IUserService
-{
-    Task<Embed> GetBalance(IUser user);
-    Task<Embed> Register(IUser user);
-    Task<Embed> Transact(IUser user, TransactionType typeOfTransaction, decimal balance);
-    Task<decimal> GetBalanceNormal(IUser user);
-}
 

@@ -62,7 +62,7 @@ class Program
 
         _slashCommands = _services.GetRequiredService<slashCommands>();
 
-        //use builder to get discord token;
+        //use builder to get discord token from .net secrets.
         string token = configurationRoot.GetSection("DISCORD_TOKEN").Value;
         
         await InstallCommandsAsync();

@@ -18,16 +18,15 @@ namespace VergilBot.Modules
         private DiscordSocketClient _client;
         private CommandService _commands;
         private ChatGpt _chatGpt;
-        private IConfigurationRoot _configurationRoot;
         private IUserService _userService;
         private readonly IDiceService _dice;
         private readonly IStableDiffusion _stableDiffusion;
         private readonly IStableDiffusionValidator _stableDiffusionValidator;
 
-        public slashCommands(DiscordSocketClient _client, CommandService _commands, ChatGpt chatGptInstance, IUserService userService, IDiceService diceService, IStableDiffusion stableDiffusion, IStableDiffusionValidator diffusionValidator) 
+        public slashCommands(DiscordSocketClient client, CommandService commands, ChatGpt chatGptInstance, IUserService userService, IDiceService diceService, IStableDiffusion stableDiffusion, IStableDiffusionValidator diffusionValidator) 
         { 
-            this._client = _client;
-            this._commands = _commands;
+            _client = client;
+            _commands = commands;
             _chatGpt = chatGptInstance;
             _userService = userService;
             _dice = diceService;
