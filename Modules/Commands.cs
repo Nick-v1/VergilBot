@@ -29,6 +29,13 @@ namespace VergilBot.Modules
             var secondSymbol = ThreadLocalRandom.NewRandom().Next(1, 7);
             var thirdSymbol = ThreadLocalRandom.NewRandom().Next(1, 7);
             var iuser = Context.User as IUser;
+            var startBalance = await _userService.GetBalanceNormal(iuser);
+
+            if (startBalance < bet)
+            {
+                await ReplyAsync("Your bet is higher than your balance.");
+                return;
+            }
             
             var symbols = new Dictionary<string, int>
             {
@@ -49,28 +56,58 @@ namespace VergilBot.Modules
                 { "Strawberries", 25 },
                 { "Watermelons", 30 }
             };
-
+            
             if (firstSymbol == secondSymbol && secondSymbol == thirdSymbol)
             {
                 var chosenSymbol = symbols.First(kv => kv.Value == firstSymbol).Key;
-                
+
                 // Get the win multiplier for the chosen symbol
                 int winMultiplier = winMultipliers[chosenSymbol];
+                
 
                 // Replace text with emoji representation
                 string chosenEmoji = GetEmojiRepresentation(chosenSymbol);
                 
                 // Calculate the winnings based on the bet and win multiplier
-                int winnings = bet * winMultiplier;
-                int winningsAfterBet = winnings - bet;
+                double winnings = bet * winMultiplier;
+                double winningsAfterBet = winnings - bet;
+                
+                  
+                var surpriseMultiplier = ThreadLocalRandom.NewRandom().Next(1, 101);
+                Console.WriteLine(surpriseMultiplier);
+                if (surpriseMultiplier == 100)
+                {
+                    var surprisedMultiplierValue = ThreadLocalRandom.NewRandom().Next(100, 10000);
+                    Console.WriteLine($"User: {iuser.Username} just hit a lucky multiplier of: {surprisedMultiplierValue}");
 
-                var embed = await _userService.Transact(iuser, TransactionType.WonBet, winningsAfterBet);
+                    await _userService.Transact(iuser, TransactionType.WonBet, (decimal)bet * (surprisedMultiplierValue + winMultiplier) - bet);
+                    var balanceSurprise = await _userService.GetBalanceNormal(iuser);
+
+                    var embedbuilderSurprise = new EmbedBuilder();
+                    embedbuilderSurprise.Title = $"{chosenEmoji} | {chosenEmoji} | {chosenEmoji}  -  JACKPOT!";
+                    embedbuilderSurprise.WithAuthor("Slots", @"https://cdn-icons-png.flaticon.com/512/287/287230.png");
+                    embedbuilderSurprise.WithFooter(Context.Client.CurrentUser.ToString(), Context.Client.CurrentUser.GetAvatarUrl());
+                    embedbuilderSurprise.Description = $"Symbol Multiplier: {winMultiplier}x\n" +
+                                                       $"Surprise Multiplier Activated! {surprisedMultiplierValue}x\n" +
+                                                       $"Final Multiplier: {surprisedMultiplierValue + winMultiplier}x\n" +
+                                                       $"Final Win: {bet * (surprisedMultiplierValue + winMultiplier)} bloodstones\n" +
+                                                       $"Profit: {(bet * (surprisedMultiplierValue + winMultiplier)) - bet} bloodstones\n" +
+                                                       $"Balance: {balanceSurprise:0.00} 💎🩸";
+                    embedbuilderSurprise.WithColor(Color.Gold);
+                    await ReplyAsync(embed: embedbuilderSurprise.Build());
+                    return;
+                }
+
+                var embed = await _userService.Transact(iuser, TransactionType.WonBet, (decimal)winningsAfterBet);
                 var embedbuilder = embed.ToEmbedBuilder();
-
+                
                 embedbuilder.Title = $"{chosenEmoji} | {chosenEmoji} | {chosenEmoji}";
                 embedbuilder.WithAuthor("Slots", @"https://cdn-icons-png.flaticon.com/512/287/287230.png");
                 embedbuilder.WithFooter(Context.Client.CurrentUser.ToString(), Context.Client.CurrentUser.GetAvatarUrl());
                 var balance = await _userService.GetBalanceNormal(iuser);
+              
+
+                
                 embedbuilder.Description = $"Win: {winnings} bloodstones\n" +
                                            $"Symbol Multiplier: {winMultiplier}x\n" +
                                            $"Profit: {winningsAfterBet} bloodstones\n" +
