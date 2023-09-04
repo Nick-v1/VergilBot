@@ -74,7 +74,6 @@ namespace VergilBot.Modules
                 
                   
                 var surpriseMultiplier = ThreadLocalRandom.NewRandom().Next(1, 101);
-                Console.WriteLine(surpriseMultiplier);
                 if (surpriseMultiplier == 100)
                 {
                     var surprisedMultiplierValue = ThreadLocalRandom.NewRandom().Next(100, 10000);
