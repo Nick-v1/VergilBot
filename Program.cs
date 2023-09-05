@@ -102,9 +102,7 @@ class Program
                 });
             });
         };
-        
     }
-
     
     public async Task HandleCommandAsync(SocketMessage messageParam)
     {
