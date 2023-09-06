@@ -14,6 +14,7 @@ public class VergilDbContext : DbContext
     }
     
     public virtual DbSet<User> Users { get; set; }
+    public virtual DbSet<Slot> Slots { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -32,6 +33,14 @@ public class VergilDbContext : DbContext
             entity.Property(u => u.Balance).HasColumnName("balance");
             entity.Property(u => u.DiscordId).HasColumnName("discord_account_id");
             entity.Property(u => u.HasSubscription).HasColumnName("hassubscription");
+        });
+        
+        modelBuilder.Entity<Slot>(entity =>
+        {
+            entity.ToTable("slots");
+            entity.Property(s => s.Id).HasColumnName("id");
+            entity.Property(s => s.Name).HasColumnName("name");
+            entity.Property(s => s.Jackpot).HasColumnName("jackpot");
         });
 
     }

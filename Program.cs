@@ -52,7 +52,8 @@ class Program
             .AddTransient<IUserValidationService, UserValidationService>()
             .AddTransient<IDiceService, DiceService>()
             .AddTransient<IStableDiffusion, StableDiffusion>()
-            .AddTransient<IStableDiffusionValidator, StableDiffusionValidator>();
+            .AddTransient<IStableDiffusionValidator, StableDiffusionValidator>()
+            .AddTransient<ISlotRepository, SlotRepository>();
 
         _services = _collection.BuildServiceProvider();
         

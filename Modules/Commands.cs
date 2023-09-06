@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Globalization;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
@@ -38,10 +39,13 @@ namespace VergilBot.Modules
             { "Watermelon", 200 }
         };
 
-        public Commands(IUserService userService, IUserValidationService userValidationService)
+        private readonly ISlotRepository _slot;
+
+        public Commands(IUserService userService, IUserValidationService userValidationService, ISlotRepository slotRepository)
         {
             _userService = userService;
             _validation = userValidationService;
+            _slot = slotRepository;
         }
 
         [Command("slots")]
@@ -70,9 +74,24 @@ namespace VergilBot.Modules
                 await ReplyAsync("Your bet is too high. Max bet is: 1000" + iuser.Mention);
                 return;
             }
-            
-            
-            
+
+            var progressiveJackPotDice = ThreadLocalRandom.NewRandom().Next(101);
+            Console.WriteLine(progressiveJackPotDice);
+            if (progressiveJackPotDice == 100)
+            {
+                Console.WriteLine($"User: {user.Username} has won the progressive jackpot!");
+                var jackPotWin = await _slot.JackPotWin();
+                var embed = new EmbedBuilder().WithTitle("Congratulations! <:PagMan:926833620423958529>").WithColor(Color.Gold)
+                    .WithAuthor("Slots", @"https://cdn-icons-png.flaticon.com/512/287/287230.png")
+                    .WithDescription($"**You have won the progressive jackpot** <:forsenCD:611176492205998091>\n" +
+                                     $"Jackpot Win: **{jackPotWin:0.00} bloodstones! 💎🩸**")
+                    .WithCurrentTimestamp()
+                    .Build();
+                await _userService.Transact(user, TransactionType.WonBet, decimal.Parse(jackPotWin.ToString(CultureInfo.CurrentCulture)));
+                
+                await ReplyAsync(embed: embed);
+            }
+
             var weightedSymbols = new List<string>();
             foreach (var kvp in symbolWeights)
             {
@@ -153,10 +172,14 @@ namespace VergilBot.Modules
                 var balance = await _userService.GetBalanceNormal(iuser);
                 var embedbuilder = embed.ToEmbedBuilder();
 
+                double jackpotValue = bet / 10.0f;
+                double currentJackpot = await _slot.UpdateSlotStats(jackpotValue);
+
                 embedbuilder.Title = $"{firstEmoji} | {secondEmoji} | {thirdEmoji}";
                 embedbuilder.WithAuthor("Slots", @"https://cdn-icons-png.flaticon.com/512/287/287230.png");
                 embedbuilder.WithFooter(Context.Client.CurrentUser.ToString(), Context.Client.CurrentUser.GetAvatarUrl());
-                embedbuilder.Description = $"You have lost **{bet}** bloodstones.\n" +
+                embedbuilder.Description = $"Progressive Jackpot: **{currentJackpot:0.00}**\n" +
+                                           $"You have lost **{bet}** bloodstones.\n" +
                                            $"**Balance: {balance:0.00} 💎🩸**";
                 Console.WriteLine();
                 await ReplyAsync(embed: embedbuilder.Build());

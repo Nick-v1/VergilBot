@@ -18,7 +18,6 @@ public class UserService : IUserService
 {
     private readonly IUserRepository _user;
     private readonly IUserValidationService _validation;
-
     public UserService(IUserRepository userRepository, IUserValidationService validationService)
     {
         _user = userRepository;
@@ -86,7 +85,7 @@ public class UserService : IUserService
         {
             var newBalance = user.Balance + balance;
             await _user.Transact(user, newBalance);
-            return new EmbedBuilder().WithTitle("Won Bet!").WithDescription($"You have won the bet!")
+            return new EmbedBuilder()
                 .WithColor(Color.Green).WithCurrentTimestamp().Build();
         }
 
@@ -94,8 +93,7 @@ public class UserService : IUserService
         {
             var newBalance = user.Balance - balance;
             await _user.Transact(user, newBalance);
-            return new EmbedBuilder().WithTitle("Lost Bet.").WithDescription($"You have lost the bet.")
-                .WithColor(Color.Red).WithCurrentTimestamp().Build();
+            return new EmbedBuilder().WithColor(Color.Red).WithCurrentTimestamp().Build();
         }
 
         if (typeOfTransaction.Equals(TransactionType.PaymentForService))
