@@ -7,6 +7,7 @@ public interface ISlotRepository
 {
     Task<double> UpdateSlotStats(double value);
     Task<double> JackPotWin();
+    Task UpdateWageredAmount(double value);
 }
 
 
@@ -26,6 +27,13 @@ public class SlotRepository : ISlotRepository
         slot.Jackpot += value;
         await _context.SaveChangesAsync();
         return slot.Jackpot;
+    }
+
+    public async Task UpdateWageredAmount(double value)
+    {
+        var slot = await _context.Slots.FindAsync(1);
+        slot.Wagered += value;
+        await _context.SaveChangesAsync();
     }
 
     public async Task<double> JackPotWin()

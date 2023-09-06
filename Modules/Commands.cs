@@ -75,6 +75,8 @@ namespace VergilBot.Modules
                 return;
             }
 
+            await _slot.UpdateWageredAmount(bet);
+
             var progressiveJackPotDice = ThreadLocalRandom.NewRandom().Next(101);
             Console.WriteLine(progressiveJackPotDice);
             if (progressiveJackPotDice == 100)
@@ -108,7 +110,8 @@ namespace VergilBot.Modules
 
             Console.WriteLine($"Symbols: {firstSymbol}  {secondSymbol}  {thirdSymbol} ");
             
-            if (firstSymbol == secondSymbol && secondSymbol == thirdSymbol)
+            
+            if (Win(firstSymbol, secondSymbol, thirdSymbol))
             {
                 var chosenSymbol = firstSymbol;
 
@@ -185,7 +188,12 @@ namespace VergilBot.Modules
                 await ReplyAsync(embed: embedbuilder.Build());
             }
         }
-        
+
+        private bool Win(string firstSymbol, string secondSymbol, string thirdSymbol)
+        {
+            return (firstSymbol == secondSymbol && firstSymbol == thirdSymbol);
+        }
+
         private string GetEmojiRepresentation(string symbol)
         {
             switch (symbol)

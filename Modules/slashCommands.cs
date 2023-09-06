@@ -208,6 +208,11 @@ namespace VergilBot.Modules
             
             if (command.Data.Name.Equals("deposit"))
             {
+                if (!command.User.Id.Equals(223127328048414721))
+                {
+                    await command.RespondAsync("You are not allowed to use this command");
+                    return;
+                }
                 try
                 {
                     await command.DeferAsync();

@@ -41,6 +41,7 @@ public class VergilDbContext : DbContext
             entity.Property(s => s.Id).HasColumnName("id");
             entity.Property(s => s.Name).HasColumnName("name");
             entity.Property(s => s.Jackpot).HasColumnName("jackpot");
+            entity.Property(s => s.Wagered).HasColumnName("wagered");
         });
 
     }
