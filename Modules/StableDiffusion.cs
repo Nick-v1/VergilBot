@@ -113,7 +113,7 @@ namespace VergilBot.Modules
                     var path = await SaveImageLocally(image, $"generated_image_{Path.GetRandomFileName()}.png");
 
                     
-                    _validator.ClassifyImage(path);
+                    //_validator.ClassifyImage(path);
 
                     return imageStreamReturned;
                 }

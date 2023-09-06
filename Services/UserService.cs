@@ -104,6 +104,14 @@ public class UserService : IUserService
                 .WithColor(Color.Red).WithCurrentTimestamp().WithFooter(user.Username, user.GetAvatarUrl()).Build();
         }
 
+        if (typeOfTransaction.Equals(TransactionType.PaymentForService))
+        {
+            var newBalance = userReturned!.Balance - balance;
+            await _user.Transact(userReturned, newBalance);
+            return new EmbedBuilder().WithTitle("Service Paid.").WithDescription($"You have paid for a service.")
+                .WithColor(Color.Red).WithCurrentTimestamp().WithFooter(user.Username, user.GetAvatarUrl()).Build();
+        }
+
         throw new SystemException("Unhandled case");
     }
 

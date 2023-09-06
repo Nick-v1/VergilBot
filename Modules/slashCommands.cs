@@ -22,8 +22,11 @@ namespace VergilBot.Modules
         private readonly IDiceService _dice;
         private readonly IStableDiffusion _stableDiffusion;
         private readonly IStableDiffusionValidator _stableDiffusionValidator;
+        private readonly IUserValidationService _userValidation;
 
-        public slashCommands(DiscordSocketClient client, CommandService commands, ChatGpt chatGptInstance, IUserService userService, IDiceService diceService, IStableDiffusion stableDiffusion, IStableDiffusionValidator diffusionValidator) 
+        public slashCommands(DiscordSocketClient client, CommandService commands, ChatGpt chatGptInstance, 
+            IUserService userService, IDiceService diceService, IStableDiffusion stableDiffusion, 
+            IStableDiffusionValidator diffusionValidator, IUserValidationService userValidationService) 
         { 
             _client = client;
             _commands = commands;
@@ -32,6 +35,7 @@ namespace VergilBot.Modules
             _dice = diceService;
             _stableDiffusion = stableDiffusion;
             _stableDiffusionValidator = diffusionValidator;
+            _userValidation = userValidationService;
         }
 
         public async Task InstallSlashCommandsAsync()
@@ -314,11 +318,23 @@ namespace VergilBot.Modules
             
             if (command.CommandName.Equals("generate"))
             {
-
                 try
                 {
                     
                     await command.DeferAsync();
+
+                    var discordUser = command.User;
+
+                    var (userValidation, user) = await _userValidation.ValidateUserExistence(discordUser);
+
+                    if (!userValidation.Success) await command.FollowupAsync("Error: You are not registered.");
+                    
+                    if (user!.Balance < 200)
+                    {
+                        await command.FollowupAsync("You have no balance to generate a picture.");
+                        return;
+                    }
+
                     var userInput = command.Data.Options.ElementAt(0).Value.ToString();
 
                     var optionsCount = command.Data.Options.Count;
@@ -345,6 +361,9 @@ namespace VergilBot.Modules
                         }
                         
                         var generatedImageBytes0 = await _stableDiffusion.GenerateImage(userInput, width: width, height: height);
+
+                        await _userService.Transact(discordUser, TransactionType.PaymentForService, 200);
+                        Console.WriteLine($"{user.Username} just created a picture in channel: {command.Channel} of guild: {command.GuildId}!");
                         
                         
                         var embed0 = new EmbedBuilder()
@@ -366,6 +385,8 @@ namespace VergilBot.Modules
                     
 
                     var generatedImageBytes = await _stableDiffusion.GenerateImage(userInput, null, null);
+                    await _userService.Transact(discordUser, TransactionType.PaymentForService, 200);
+                    Console.WriteLine($"{user.Username} just created a picture in channel: {command.Channel} of guild: {command.GuildId}!");
                     
                     var embed = new EmbedBuilder()
                         .WithTitle("Your image is ready")
@@ -569,7 +590,7 @@ namespace VergilBot.Modules
 
             var imageGeneration = new SlashCommandBuilder()
                 .WithName("generate")
-                .WithDescription("Generate a picture with today's random model")
+                .WithDescription("Generate a picture with today's random model. Costs 200 bloodstones.")
                 .AddOption("prompt", ApplicationCommandOptionType.String, "your prompt", true)
                 .AddOption("width", ApplicationCommandOptionType.Integer, "width of the image to be generated", false)
                 .AddOption("height", ApplicationCommandOptionType.Integer, "height of the image to be generated", false);
