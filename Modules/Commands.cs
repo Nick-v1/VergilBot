@@ -114,7 +114,7 @@ namespace VergilBot.Modules
                     var surprisedMultiplierValue = ThreadLocalRandom.NewRandom().Next(100, 10000);
                     Console.WriteLine($"{iuser.Username} just hit a lucky multiplier of: {surprisedMultiplierValue}");
 
-                    await _userService.Transact(iuser, TransactionType.WonBet, (decimal)bet * (surprisedMultiplierValue + winMultiplier) - bet);
+                    await _userService.Transact(user, TransactionType.WonBet, (decimal)bet * (surprisedMultiplierValue + winMultiplier) - bet);
                     var balanceSurprise = await _userService.GetBalanceNormal(iuser);
 
                     var jackpotEmbed = CreateJackpotEmbed(chosenEmoji, winMultiplier, surprisedMultiplierValue, bet, balanceSurprise, iuser);
@@ -123,7 +123,7 @@ namespace VergilBot.Modules
                     return;
                 }
 
-                var embed = await _userService.Transact(iuser, TransactionType.WonBet, (decimal)winningsAfterBet);
+                var embed = await _userService.Transact(user, TransactionType.WonBet, (decimal)winningsAfterBet);
                 var embedbuilder = embed.ToEmbedBuilder();
                 
                 embedbuilder.Title = $"{chosenEmoji} | {chosenEmoji} | {chosenEmoji}";
@@ -149,7 +149,7 @@ namespace VergilBot.Modules
                 string secondEmoji = GetEmojiRepresentation(secondSymbol);
                 string thirdEmoji = GetEmojiRepresentation(thirdSymbol);
 
-                var embed = await _userService.Transact(iuser, TransactionType.LostBet, bet);
+                var embed = await _userService.Transact(user, TransactionType.LostBet, bet);
                 var balance = await _userService.GetBalanceNormal(iuser);
                 var embedbuilder = embed.ToEmbedBuilder();
 

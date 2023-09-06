@@ -10,7 +10,7 @@ public interface IUserService
 {
     Task<Embed> GetBalance(IUser user);
     Task<Embed> Register(IUser user);
-    Task<Embed> Transact(IUser user, TransactionType typeOfTransaction, decimal balance);
+    Task<Embed> Transact(User user, TransactionType typeOfTransaction, decimal balance);
     Task<decimal> GetBalanceNormal(IUser user);
 }
 
@@ -66,21 +66,15 @@ public class UserService : IUserService
         }
     }
 
-    public async Task<Embed> Transact(IUser user, TransactionType typeOfTransaction, decimal balance)
+    public async Task<Embed> Transact(User user, TransactionType typeOfTransaction, decimal balance)
     {
-        var (validation, userReturned) = await _validation.ValidateUserExistence(user);
-
-        if (!validation.Success)
-        {
-            return new EmbedBuilder().WithTitle(validation.Message).WithFooter(user.Username, user.GetAvatarUrl()).WithCurrentTimestamp().WithColor(Color.Red).Build();
-        }
         
         if (typeOfTransaction.Equals(TransactionType.Deposit))
         {
-            var newBalance = userReturned!.Balance + balance;
-            await _user.Transact(userReturned, newBalance);
+            var newBalance = user.Balance + balance;
+            await _user.Transact(user, newBalance);
             return new EmbedBuilder().WithTitle("Successful Deposit").WithDescription($"{balance} bloodstones has been credited into your account!\n" +
-                $"You now have {userReturned.Balance} bloodstones").WithColor(Color.Green).Build();
+                $"You now have {user.Balance} bloodstones").WithColor(Color.Green).Build();
         }
         
         if (typeOfTransaction.Equals(TransactionType.Withdrawal))
@@ -90,26 +84,26 @@ public class UserService : IUserService
         
         if (typeOfTransaction.Equals(TransactionType.WonBet))
         {
-            var newBalance = userReturned!.Balance + balance;
-            await _user.Transact(userReturned, newBalance);
+            var newBalance = user.Balance + balance;
+            await _user.Transact(user, newBalance);
             return new EmbedBuilder().WithTitle("Won Bet!").WithDescription($"You have won the bet!")
-                .WithColor(Color.Green).WithCurrentTimestamp().WithFooter(user.Username, user.GetAvatarUrl()).Build();
+                .WithColor(Color.Green).WithCurrentTimestamp().Build();
         }
 
         if (typeOfTransaction.Equals(TransactionType.LostBet))
         {
-            var newBalance = userReturned!.Balance - balance;
-            await _user.Transact(userReturned, newBalance);
+            var newBalance = user.Balance - balance;
+            await _user.Transact(user, newBalance);
             return new EmbedBuilder().WithTitle("Lost Bet.").WithDescription($"You have lost the bet.")
-                .WithColor(Color.Red).WithCurrentTimestamp().WithFooter(user.Username, user.GetAvatarUrl()).Build();
+                .WithColor(Color.Red).WithCurrentTimestamp().Build();
         }
 
         if (typeOfTransaction.Equals(TransactionType.PaymentForService))
         {
-            var newBalance = userReturned!.Balance - balance;
-            await _user.Transact(userReturned, newBalance);
+            var newBalance = user.Balance - balance;
+            await _user.Transact(user, newBalance);
             return new EmbedBuilder().WithTitle("Service Paid.").WithDescription($"You have paid for a service.")
-                .WithColor(Color.Red).WithCurrentTimestamp().WithFooter(user.Username, user.GetAvatarUrl()).Build();
+                .WithColor(Color.Red).WithCurrentTimestamp().Build();
         }
 
         throw new SystemException("Unhandled case");

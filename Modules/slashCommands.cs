@@ -6,7 +6,6 @@ using System.Text;
 using VergilBot.Models.Entities;
 using VergilBot.Models.Misc;
 using Discord.Commands;
-using Microsoft.Extensions.Configuration;
 using VergilBot.Service.ValidationServices;
 using VergilBot.Services;
 using VergilBot.Services.ValidationServices.EnumsAndResponseTemplate;
@@ -212,10 +211,18 @@ namespace VergilBot.Modules
                 try
                 {
                     await command.DeferAsync();
-                    IUser user = command.User;
-                    var fundsToAdd = Decimal.Parse(command.Data.Options.ElementAt(0).Value.ToString());
+                    IUser discordUser = command.User;
+                    var fundsToAdd = Decimal.Parse(command.Data.Options.ElementAt(0).Value.ToString()!);
 
-                    var embedbalance = await _userService.Transact(user, TransactionType.Deposit, fundsToAdd);
+                    var (validation, user) = await _userValidation.ValidateUserExistence(discordUser);
+
+                    if (!validation.Success)
+                    {
+                        await command.FollowupAsync("You are not registered.");
+                        return;
+                    }
+
+                    var embedbalance = await _userService.Transact(user!, TransactionType.Deposit, fundsToAdd);
 
                     await command.FollowupAsync(embed: embedbalance);
 
@@ -362,7 +369,7 @@ namespace VergilBot.Modules
                         
                         var generatedImageBytes0 = await _stableDiffusion.GenerateImage(userInput, width: width, height: height);
 
-                        await _userService.Transact(discordUser, TransactionType.PaymentForService, 200);
+                        await _userService.Transact(user, TransactionType.PaymentForService, 200);
                         Console.WriteLine($"{user.Username} just created a picture in channel: {command.Channel} of guild: {command.GuildId}!");
                         
                         
@@ -385,7 +392,7 @@ namespace VergilBot.Modules
                     
 
                     var generatedImageBytes = await _stableDiffusion.GenerateImage(userInput, null, null);
-                    await _userService.Transact(discordUser, TransactionType.PaymentForService, 200);
+                    await _userService.Transact(user, TransactionType.PaymentForService, 200);
                     Console.WriteLine($"{user.Username} just created a picture in channel: {command.Channel} of guild: {command.GuildId}!");
                     
                     var embed = new EmbedBuilder()
