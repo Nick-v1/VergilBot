@@ -19,25 +19,7 @@ namespace VergilBot.Modules
     {
         private readonly IUserService _userService;
         private readonly IUserValidationService _validation;
-        private static readonly Dictionary<string, int> symbolWeights = new Dictionary<string, int>
-        {
-            { "Apple", 30 },         // Higher weight (higher probability)
-            { "Banana", 30 },        // Higher weight (higher probability)
-            { "Cherry", 30 },        // Lower weight (lower probability)
-            { "Lemon", 5 },        // Lower weight (lower probability)
-            { "Strawberry", 3 },  // Lower weight (lower probability)
-            { "Watermelon", 2 }    // Lower weight (lower probability)
-        };
-            
-        private static readonly Dictionary<string, int> winMultipliers = new Dictionary<string, int>
-        {
-            { "Apple", 3 },
-            { "Banana", 5 },
-            { "Cherry", 10 },
-            { "Lemon", 20 },
-            { "Strawberry", 100 },
-            { "Watermelon", 200 }
-        };
+        
 
         private readonly ISlotRepository _slot;
 
@@ -79,20 +61,42 @@ namespace VergilBot.Modules
 
             var progressiveJackPotDice = ThreadLocalRandom.NewRandom().Next(101);
             Console.WriteLine(progressiveJackPotDice);
+
             if (progressiveJackPotDice == 100)
             {
                 Console.WriteLine($"User: {user.Username} has won the progressive jackpot!");
                 var jackPotWin = await _slot.JackPotWin();
-                var embed = new EmbedBuilder().WithTitle("Congratulations! <:PagMan:926833620423958529>").WithColor(Color.Gold)
+                var embed = new EmbedBuilder().WithTitle($"Congratulations! <:PagMan:926833620423958529>").WithColor(Color.Gold)
                     .WithAuthor("Slots", @"https://cdn-icons-png.flaticon.com/512/287/287230.png")
-                    .WithDescription($"**You have won the progressive jackpot** <:forsenCD:611176492205998091>\n" +
+                    .WithDescription($"**{iuser.Mention} just won the progressive jackpot** <:forsenCD:611176492205998091>\n" +
                                      $"Jackpot Win: **{jackPotWin:0.00} bloodstones! 💎🩸**")
                     .WithCurrentTimestamp()
+                    .WithFooter(iuser.Username, iuser.GetAvatarUrl())
                     .Build();
                 await _userService.Transact(user, TransactionType.WonBet, decimal.Parse(jackPotWin.ToString(CultureInfo.CurrentCulture)));
                 
                 await ReplyAsync(embed: embed);
             }
+            
+            Dictionary<string, int> symbolWeights = new Dictionary<string, int>
+            {
+                { "Apple", 60 },         // Higher weight (higher probability) 2.7%
+                { "Banana", 40 },        // Higher weight (higher probability) 2.7%
+                { "Cherry", 20 },        // Lower weight (lower probability)   2.7%
+                { "Lemon", 10 },        // Lower weight (lower probability)     0.01%
+                { "Strawberry", 5 },  // Lower weight (lower probability)      0.0027%
+                { "Watermelon", 3 }    // Lower weight (lower probability)     0.0008%      probabilities for winning with 3 symbols
+            };
+            
+            Dictionary<string, int> winMultipliers = new Dictionary<string, int>
+            {
+                { "Apple", 3 },
+                { "Banana", 5 },
+                { "Cherry", 10 },
+                { "Lemon", 20 },
+                { "Strawberry", 100 },
+                { "Watermelon", 200 }
+            };
 
             var weightedSymbols = new List<string>();
             foreach (var kvp in symbolWeights)
@@ -150,7 +154,7 @@ namespace VergilBot.Modules
                 
                 embedbuilder.Title = $"{chosenEmoji} | {chosenEmoji} | {chosenEmoji}";
                 embedbuilder.WithAuthor("Slots", @"https://cdn-icons-png.flaticon.com/512/287/287230.png");
-                embedbuilder.WithFooter(Context.Client.CurrentUser.ToString(), Context.Client.CurrentUser.GetAvatarUrl());
+                embedbuilder.WithFooter(iuser.Username, iuser.GetAvatarUrl());
                 var balance = await _userService.GetBalanceNormal(iuser);
               
 
@@ -180,9 +184,9 @@ namespace VergilBot.Modules
 
                 embedbuilder.Title = $"{firstEmoji} | {secondEmoji} | {thirdEmoji}";
                 embedbuilder.WithAuthor("Slots", @"https://cdn-icons-png.flaticon.com/512/287/287230.png");
-                embedbuilder.WithFooter(Context.Client.CurrentUser.ToString(), Context.Client.CurrentUser.GetAvatarUrl());
+                embedbuilder.WithFooter(iuser.Username, iuser.GetAvatarUrl());
                 embedbuilder.Description = $"Progressive Jackpot: **{currentJackpot:0.00}**\n" +
-                                           $"You have lost **{bet}** bloodstones.\n" +
+                                           $"{iuser.Mention} just lost **{bet}** bloodstones.\n" +
                                            $"**Balance: {balance:0.00} 💎🩸**";
                 Console.WriteLine();
                 await ReplyAsync(embed: embedbuilder.Build());
@@ -220,7 +224,7 @@ namespace VergilBot.Modules
             var embedbuilderSurprise = new EmbedBuilder();
             embedbuilderSurprise.Title = $"{chosenEmoji} | {chosenEmoji} | {chosenEmoji}  -  JACKPOT!";
             embedbuilderSurprise.WithAuthor("Slots", @"https://cdn-icons-png.flaticon.com/512/287/287230.png");
-            embedbuilderSurprise.WithFooter(Context.Client.CurrentUser.ToString(), Context.Client.CurrentUser.GetAvatarUrl());
+            embedbuilderSurprise.WithFooter(iuser.Username, iuser.GetAvatarUrl());
             embedbuilderSurprise.Description = $"**{iuser.Mention} just hit a jackpot! <:forsenCD:611176492205998091>**\n\n" +
                                                $"Symbol Multiplier: **{winMultiplier}x**\n" +
                                                $"Surprise Multiplier Activated! **{surprisedMultiplierValue}x**\n" +
@@ -229,6 +233,7 @@ namespace VergilBot.Modules
                                                $"Profit: **{(bet * (surprisedMultiplierValue + winMultiplier)) - bet} bloodstones**\n" +
                                                $"\n**Balance: {balanceSurprise:0.00} 💎🩸**";
             embedbuilderSurprise.WithColor(Color.Gold);
+            embedbuilderSurprise.WithCurrentTimestamp();
 
             return embedbuilderSurprise;
         }

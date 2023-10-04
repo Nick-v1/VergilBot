@@ -6,20 +6,14 @@ namespace VergilBot.Services.Context;
 
 public class VergilDbContext : DbContext
 {
-    private readonly IConfiguration _config;
 
-    public VergilDbContext(IConfiguration configuration)
+    public VergilDbContext(DbContextOptions<VergilDbContext> options) : base(options)
     {
-        _config = configuration;
+        
     }
-    
+
     public virtual DbSet<User> Users { get; set; }
     public virtual DbSet<Slot> Slots { get; set; }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        if (!optionsBuilder.IsConfigured) optionsBuilder.UseNpgsql(_config.GetConnectionString("DefaultConnection"));
-    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

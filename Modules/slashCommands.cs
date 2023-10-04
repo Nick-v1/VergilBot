@@ -439,7 +439,7 @@ namespace VergilBot.Modules
                     
                     var attachmentOption = attachment as IAttachment;
 
-                    if (attachmentOption.Url.EndsWith(".png"))
+                    if (attachmentOption.Url.Contains(".png"))
                     {
 
                         var generatedImageBytes = await _stableDiffusion.UseControlNet(userPrompt!, attachmentOption);

@@ -11,6 +11,8 @@ using VergilBot.Service.ValidationServices;
 using VergilBot.Services;
 using VergilBot.Services.Context;
 
+namespace VergilBot;
+
 class Program
 {
     private DiscordSocketClient _client;
@@ -43,17 +45,17 @@ class Program
             .AddSingleton(_config)
             .AddSingleton<IConfiguration>(configurationRoot)
             .AddSingleton<DiscordSocketClient>()
-            .AddDbContext<VergilDbContext>(options => options.UseNpgsql(configurationRoot.GetConnectionString("DefaultConnection")), ServiceLifetime.Scoped)
-            .AddTransient<IUserRepository, UserRepository>()
-            .AddTransient<IUserService, UserService>()
-            .AddSingleton<slashCommands>()
+            .AddDbContext<VergilDbContext>(options => options.UseNpgsql(configurationRoot.GetConnectionString("DefaultConnection")), ServiceLifetime.Transient)
+            .AddScoped<IUserRepository, UserRepository>()
+            .AddScoped<IUserService, UserService>()
+            .AddScoped<slashCommands>()
             .AddScoped<ChatGpt>()
-            .AddSingleton<CommandService>()
-            .AddTransient<IUserValidationService, UserValidationService>()
-            .AddTransient<IDiceService, DiceService>()
-            .AddTransient<IStableDiffusion, StableDiffusion>()
-            .AddTransient<IStableDiffusionValidator, StableDiffusionValidator>()
-            .AddTransient<ISlotRepository, SlotRepository>();
+            .AddScoped<CommandService>()
+            .AddScoped<IUserValidationService, UserValidationService>()
+            .AddScoped<IDiceService, DiceService>()
+            .AddScoped<IStableDiffusion, StableDiffusion>()
+            .AddScoped<IStableDiffusionValidator, StableDiffusionValidator>()
+            .AddScoped<ISlotRepository, SlotRepository>();
 
         _services = _collection.BuildServiceProvider();
         
@@ -114,7 +116,9 @@ class Program
 
         int argPos = 6;
 
-        if (message.Content.Contains("βιτσας") || message.Content.Contains("βίτσας") || message.Content.Contains("Βιτσας") || message.Content.Contains("Βίτσας") || message.Content.Contains("Vitsas") || message.Content.Contains("vitsas"))
+        if (message.Content.Contains("βιτσας") || message.Content.Contains("βίτσας") || message.Content.Contains("Βιτσας") 
+            || message.Content.Contains("Βίτσας") || message.Content.Contains("Vitsas") || message.Content.Contains("vitsas") || 
+            message.Content.Contains("zisopoulos") || message.Content.Contains("ζησόπουλος") )
             await message.Channel.SendMessageAsync("Don't say this name");
 
         //two ways of calling the bot
