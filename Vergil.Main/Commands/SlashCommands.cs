@@ -481,8 +481,8 @@ public class SlashCommands
 
                     var attachmentOption = userImage as IAttachment;
 
-                    if (attachmentOption.Url.EndsWith(".png") || attachmentOption.Url.EndsWith(".jpg") ||
-                        attachmentOption.Url.EndsWith(".jpeg"))
+                    if (attachmentOption.Url.Contains(".png") || attachmentOption.Url.Contains(".jpg") ||
+                        attachmentOption.Url.Contains(".jpeg"))
                     {
                         var generatedImageBytes = await _stableDiffusion.Img2Img(userPrompt, attachmentOption);
                         
