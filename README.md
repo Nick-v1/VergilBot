@@ -1,3 +1,3 @@
 # VergilBot
 
-This is a personal discord bot.
+This is a bot for me and my friends.
