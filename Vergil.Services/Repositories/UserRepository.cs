@@ -25,6 +25,8 @@ public class UserRepository : IUserRepository
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.DiscordId == id);
 
+        if (user is null) return null;
+        
         Console.WriteLine("Fetching changes...");
         await _context.Entry(user).ReloadAsync();
         
