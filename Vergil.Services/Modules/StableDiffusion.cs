@@ -32,8 +32,7 @@ public interface IStableDiffusion
         {
             _url = "http://127.0.0.1:7860";
             _sampler = "DPM++ 2M Karras";
-            _negativePrompt = "(worst quality:1.1), (low quality:1.1), (lowres:1.1), (monochrome:1.1), (greyscale), multiple views, comic, sketch, (blurry:1.1), transparent, " +
-                              "easynegative, ng_deepnegative_v1_75t, (low quality, worst quality, lowres:1.1), text, patreon, watermark";
+            _negativePrompt = "lowres, bad anatomy, bad hands, text, error, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry";
             infoEndpoint = $"{_url}/sdapi/v1/png-info";
             txt2imgEndpoint = $"{_url}/sdapi/v1/txt2img";
             img2imgEndpoint = $"{_url}/sdapi/v1/img2img";
@@ -49,8 +48,8 @@ public interface IStableDiffusion
                     { "prompt", $"{prompt}" },
                     { "steps", 28 },
                     { "sampler_index", "Restart"},
-                    { "width", width ??= 600},
-                    { "height", height ??= 600},
+                    { "width", width ??= 576},
+                    { "height", height ??= 576},
                     { "use_async", true},
                     { "negative_prompt", _negativePrompt},
                     { "cfg_scale", 7}
