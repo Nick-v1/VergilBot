@@ -1,4 +1,4 @@
-﻿namespace Vergil.Data.Models;
+﻿namespace MyProject.Models;
 
 public class User
 {
