@@ -99,9 +99,12 @@ public class Program
         
         _client.SlashCommandExecuted += async (command) =>
         {
-            await Task.Run(async () =>
+            await Task.Run(() =>
             {
-                await _slashCommands.SlashCommandHandler(command);
+                ThreadPool.QueueUserWorkItem(_ =>
+                {
+                    _slashCommands.SlashCommandHandler(command);
+                });
             });
         };
 
