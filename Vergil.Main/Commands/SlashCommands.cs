@@ -338,7 +338,11 @@ public class SlashCommands
 
                     var (userValidation, user) = await _userValidation.ValidateUserExistence(discordUser);
 
-                    if (!userValidation.Success) await command.FollowupAsync("Error: You are not registered.");
+                    if (!userValidation.Success)
+                    {
+                        await command.FollowupAsync("Error: You are not registered.");
+                        return;
+                    }
                     
                     if (user!.Balance < 200)
                     {
