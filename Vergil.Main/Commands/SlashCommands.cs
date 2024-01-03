@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.RegularExpressions;
 using Discord;
 using Discord.Commands;
 using Discord.Net;
@@ -22,10 +23,11 @@ public class SlashCommands
         private readonly IStableDiffusion _stableDiffusion;
         private readonly IStableDiffusionValidator _stableDiffusionValidator;
         private readonly IUserValidationService _userValidation;
+        private readonly IStripeService _stripeService;
 
         public SlashCommands(DiscordSocketClient client, CommandService commands, ChatGpt chatGptInstance, 
             IUserService userService, IDiceService diceService, IStableDiffusion stableDiffusion, 
-            IStableDiffusionValidator diffusionValidator, IUserValidationService userValidationService) 
+            IStableDiffusionValidator diffusionValidator, IUserValidationService userValidationService, IStripeService stripeService) 
         { 
             _client = client;
             _commands = commands;
@@ -35,6 +37,7 @@ public class SlashCommands
             _stableDiffusion = stableDiffusion;
             _stableDiffusionValidator = diffusionValidator;
             _userValidation = userValidationService;
+            _stripeService = stripeService;
         }
 
         public async Task InstallSlashCommandsAsync()
@@ -395,9 +398,7 @@ public class SlashCommands
                         
                         return;
                     }
-                    
-                    //await Task.Delay(3000);
-                    
+
 
                     var generatedImageBytes = await _stableDiffusion.GenerateImage(userInput, null, null);
                     await _userService.Transact(user, TransactionType.PaymentForService, 200);
@@ -514,6 +515,105 @@ public class SlashCommands
                 }
             }
 
+            if (command.CommandName.Equals("purchase"))
+            {
+                try
+                {
+                    await command.DeferAsync(true);
+                    IUser discordUser = command.User;
+
+                    var (validation, user) = await _userValidation.ValidateUserExistence(discordUser);
+
+                    if (!validation.Success)
+                    {
+                        await command.FollowupAsync("You are not registered.");
+                        return;
+                    }
+
+                    if (user!.Email is null)
+                    {
+                        await command.FollowupAsync("You need to register your email before making a purchase. Use /email to register your email.");
+                        return;
+                    }
+
+                    var arg = command.Data.Options.ElementAt(0).Value;
+
+                    if (arg.ToString()!.Contains("subscription"))
+                    {
+                        var link = await _stripeService.StripeTransaction(PurchaseType.Subscription, user.Email, null);
+                        var embed = new EmbedBuilder()
+                            .WithAuthor(_client.CurrentUser.Username, _client.CurrentUser.GetAvatarUrl())
+                            .WithDescription($"You are purchasing a monthly subscription! Follow your stripe link: " +
+                                             $"[Stripe]({link}) to complete your payment securely.")
+                            .WithColor(Color.DarkTeal)
+                            .Build();
+                        await command.FollowupAsync(embed:embed);
+                        return;
+                    }
+                    
+                    if (arg.ToString()!.Contains("bloodstones"))
+                    {
+                        var link = await _stripeService.StripeTransaction(PurchaseType.Bloodstones, user.Email, arg.ToString());
+                        var embed = new EmbedBuilder()
+                            .WithAuthor(_client.CurrentUser.Username, _client.CurrentUser.GetAvatarUrl())
+                            .WithDescription($"You are purchasing {arg}! Follow your stripe link: [Stripe]({link})")
+                            .WithColor(Color.DarkTeal)
+                            .Build();
+                        await command.FollowupAsync(embed: embed);
+                        return;
+                    }
+                    
+                    if (arg.ToString()!.Contains("tokens"))
+                    {
+                        var link = await _stripeService.StripeTransaction(PurchaseType.Tokens, user.Email, arg.ToString());
+                        var embed = new EmbedBuilder()
+                            .WithAuthor(_client.CurrentUser.Username, _client.CurrentUser.GetAvatarUrl())
+                            .WithDescription($"You are purchasing {arg}! Follow your stripe link: [Stripe]({link})")
+                            .WithColor(Color.DarkTeal)
+                            .Build();
+                        await command.FollowupAsync(embed: embed);
+                        return;
+                    }
+
+                }
+                catch (Exception e)
+                {
+                    //await command.FollowupAsync("An error has occured. Try selecting one option at a time.");
+                    await command.FollowupAsync(e.Message);
+                }
+            }
+
+            if (command.Data.Name.Equals("email"))
+            {
+                try
+                {
+                    await command.DeferAsync(true);
+
+                    var usersEmail = command.Data.Options.ElementAt(0).Value.ToString();
+                    IUser discordUser = command.User;
+
+                    var (validation, user) = await _userValidation.ValidateUserExistence(discordUser);
+
+                    if (!validation.Success)
+                    {
+                        await command.FollowupAsync("You are not registered.");
+                        return;
+                    }
+
+                    if (!Regex.IsMatch(usersEmail!, @"^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$"))
+                    {
+                        await command.FollowupAsync("Invalid Email Format.");
+                        return;
+                    }
+
+                    var responseEmbed = await _userService.RegisterEmail(user!, usersEmail!);
+                    await command.FollowupAsync(embed:responseEmbed);
+                }
+                catch (Exception e)
+                {
+                    await command.FollowupAsync("An error has occured.");
+                }
+            }
         }
 
         /// <summary>
@@ -622,6 +722,38 @@ public class SlashCommands
                 .AddOption("prompt", ApplicationCommandOptionType.String, "your prompt", true)
                 .AddOption("image", ApplicationCommandOptionType.Attachment, "your image", true);
 
+            var purchaseCommand = new SlashCommandBuilder()
+                .WithName("purchase")
+                .WithDescription("Select an option:")
+                .AddOption(new SlashCommandOptionBuilder()
+                    .WithName("funds")
+                    .WithDescription("buy bloodstones")
+                    .WithRequired(false)
+                    .AddChoice("Buy 2000 for 2€", "2000 bloodstones")
+                    .AddChoice("Buy 5000 for 5€", "5000 bloodstones")
+                    .AddChoice("Buy 10000 for 10€", "10000 bloodstones")
+                    .AddChoice("Buy 20000 for 19€", "20000 bloodstones")
+                    .WithType(ApplicationCommandOptionType.String))
+                .AddOption(new SlashCommandOptionBuilder()
+                    .WithName("subscription")
+                    .WithDescription("buy a subscription")
+                    .WithRequired(false)
+                    .AddChoice("Buy monthly subscription (6.99€)", "monthly subscription")
+                    .WithType(ApplicationCommandOptionType.String))
+                .AddOption(new SlashCommandOptionBuilder()
+                    .WithName("tokens")
+                    .WithDescription("buy image generation tokens")
+                    .WithRequired(false)
+                    .AddChoice("Buy 10 tokens for 1€", "10 tokens")
+                    .AddChoice("Buy 100 tokens for 10€", "100 tokens")
+                    .AddChoice("Buy 200 tokens for 20€", "200 tokens")
+                    .WithType(ApplicationCommandOptionType.String));
+
+            var registerEmailCommand = new SlashCommandBuilder()
+                .WithName("email")
+                .WithDescription("Register your email to the bot.")
+                .AddOption("email", ApplicationCommandOptionType.String, "The email you want to use", true);
+
             try
             {
                 await _client.CreateGlobalApplicationCommandAsync(globalCommand.Build());
@@ -639,6 +771,8 @@ public class SlashCommands
                 await _client.CreateGlobalApplicationCommandAsync(imageGeneration.Build());
                 await _client.CreateGlobalApplicationCommandAsync(controlNetGeneration.Build());
                 await _client.CreateGlobalApplicationCommandAsync(imageGenerationImg2Img.Build());
+                await _client.CreateGlobalApplicationCommandAsync(purchaseCommand.Build());
+                await _client.CreateGlobalApplicationCommandAsync(registerEmailCommand.Build());
             }
             catch (HttpException e)
             {

@@ -12,6 +12,7 @@ public interface IUserService
     Task<Embed> Register(IUser user);
     Task<Embed> Transact(User user, TransactionType typeOfTransaction, decimal balance);
     Task<decimal> GetBalanceNormal(IUser user);
+    Task<Embed> RegisterEmail(User user, string email);
 }
 
 public class UserService : IUserService
@@ -128,5 +129,17 @@ public class UserService : IUserService
     {
         var userReturned = await _user.GetUserById(user.Id.ToString());
         return userReturned.Balance;
+    }
+
+    public async Task<Embed> RegisterEmail(User user, string email)
+    {
+        await _user.RegisterEmail(user, email);
+        
+        var embed = new EmbedBuilder()
+            .WithAuthor($"Your email has been registered")
+            .WithColor(Color.DarkTeal)
+            .Build();
+        
+        return embed;
     }
 }

@@ -8,4 +8,5 @@ public class User
     public string DiscordId { get; set; }
     public bool HasSubscription { get; set; }
     public int? GenerationTokens { get; set; }
+    public string? Email { get; set; }
 }

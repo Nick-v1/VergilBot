@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Vergil.Data.Context;
 using Vergil.Data.Models;
 
@@ -10,6 +9,7 @@ public interface IUserRepository
     Task<User?> GetUserById(string id);
     Task<User?> Register(User user);
     Task Transact(User user, decimal balance);
+    Task RegisterEmail(User user, string email);
 }
 
 public class UserRepository : IUserRepository
@@ -45,5 +45,10 @@ public class UserRepository : IUserRepository
         user.Balance = balance;
         await _context.SaveChangesAsync();
     }
-    
+
+    public async Task RegisterEmail(User user, string email)
+    {
+        user.Email = email;
+        await _context.SaveChangesAsync();
+    }
 }

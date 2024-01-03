@@ -5,6 +5,7 @@ using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Stripe;
 using Vergil.Data.Context;
 using Vergil.Main.Commands;
 using Vergil.Services.Misc;
@@ -59,8 +60,11 @@ public class Program
             .AddScoped<IDiceService, DiceService>()
             .AddScoped<IStableDiffusion, StableDiffusion>()
             .AddScoped<IStableDiffusionValidator, StableDiffusionValidator>()
-            .AddScoped<ISlotRepository, SlotRepository>();
+            .AddScoped<ISlotRepository, SlotRepository>()
+            .AddScoped<IStripeService, StripeService>();
 
+        StripeConfiguration.ApiKey = configuration.GetValue<string>("StripeSettings:SecretKey");
+        
         _services = _collection.BuildServiceProvider();
 
         _commands = _services.GetRequiredService<CommandService>();
