@@ -47,7 +47,7 @@ public class PrefixCommands : ModuleBase<SocketCommandContext>
             return;
         }
 
-        if (bet > 10000)
+        if (bet > 1000)
         {
             await ReplyAsync("Your bet is too high. Max bet is: 1000" + iuser.Mention);
             return;
