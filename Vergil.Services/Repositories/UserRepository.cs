@@ -8,8 +8,9 @@ public interface IUserRepository
 {
     Task<User?> GetUserById(string id);
     Task<User?> Register(User user);
-    Task Transact(User user, decimal balance);
+    Task TransactWithBalance(User user, decimal balance);
     Task RegisterEmail(User user, string email);
+    Task TransactWithTokens(User user, int tokens);
 }
 
 public class UserRepository : IUserRepository
@@ -40,9 +41,15 @@ public class UserRepository : IUserRepository
         return user;
     }
 
-    public async Task Transact(User user, decimal balance)
+    public async Task TransactWithBalance(User user, decimal balance)
     {
         user.Balance = balance;
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task TransactWithTokens(User user, int tokens)
+    {
+        user.GenerationTokens = tokens;
         await _context.SaveChangesAsync();
     }
 

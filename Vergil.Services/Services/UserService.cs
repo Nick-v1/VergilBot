@@ -1,4 +1,5 @@
-﻿using Discord;
+﻿using System.Globalization;
+using Discord;
 using Vergil.Data.Models;
 using Vergil.Services.Enums;
 using Vergil.Services.Repositories;
@@ -10,7 +11,7 @@ public interface IUserService
 {
     Task<Embed> GetBalance(IUser user);
     Task<Embed> Register(IUser user);
-    Task<Embed> Transact(User user, TransactionType typeOfTransaction, decimal balance);
+    Task<Embed> Transact(User user, TransactionType typeOfTransaction, PurchaseType purchaseType, decimal amount);
     Task<decimal> GetBalanceNormal(IUser user);
     Task<Embed> RegisterEmail(User user, string email);
 }
@@ -63,47 +64,66 @@ public class UserService : IUserService
         }
         catch (Exception e)
         {
-            return new EmbedBuilder().WithTitle(e.Message.ToString()).Build();
+            return new EmbedBuilder().WithTitle(e.Message).Build();
         }
     }
 
-    public async Task<Embed> Transact(User user, TransactionType typeOfTransaction, decimal balance)
+    public async Task<Embed> Transact(User user, TransactionType typeOfTransaction, PurchaseType purchaseType, decimal amount)
     {
-        
-        if (typeOfTransaction.Equals(TransactionType.Deposit))
+        if (purchaseType == PurchaseType.Bloodstones)
         {
-            var newBalance = user.Balance + balance;
-            await _user.Transact(user, newBalance);
-            return new EmbedBuilder().WithTitle("Successful Deposit").WithDescription($"{balance} bloodstones has been credited into your account!\n" +
-                $"You now have {user.Balance} bloodstones").WithColor(Color.Green).Build();
-        }
+            if (typeOfTransaction.Equals(TransactionType.Deposit))
+            {
+                var newBalance = user.Balance + amount;
+                await _user.TransactWithBalance(user, newBalance!); //PurchaseType.Bloodstones ensures that there's no null value.
+                return new EmbedBuilder().WithTitle("Successful Deposit").WithDescription($"{amount} bloodstones has been credited into your account!\n" +
+                    $"You now have {user.Balance} bloodstones").WithColor(Color.Green).Build();
+            }
         
-        if (typeOfTransaction.Equals(TransactionType.Withdrawal))
-        {
-            throw new NotImplementedException();
-        }
+            if (typeOfTransaction.Equals(TransactionType.Withdrawal))
+            {
+                throw new NotImplementedException();
+            }
         
-        if (typeOfTransaction.Equals(TransactionType.WonBet))
-        {
-            var newBalance = user.Balance + balance;
-            await _user.Transact(user, newBalance);
-            return new EmbedBuilder()
-                .WithColor(Color.Green).WithCurrentTimestamp().Build();
-        }
+            if (typeOfTransaction.Equals(TransactionType.WonBet))
+            {
+                var newBalance = user.Balance + amount;
+                await _user.TransactWithBalance(user, newBalance!);
+                return new EmbedBuilder()
+                    .WithColor(Color.Green).WithCurrentTimestamp().Build();
+            }
 
-        if (typeOfTransaction.Equals(TransactionType.LostBet))
-        {
-            var newBalance = user.Balance - balance;
-            await _user.Transact(user, newBalance);
-            return new EmbedBuilder().WithColor(Color.Red).WithCurrentTimestamp().Build();
-        }
+            if (typeOfTransaction.Equals(TransactionType.LostBet))
+            {
+                var newBalance = user.Balance - amount;
+                await _user.TransactWithBalance(user, newBalance!);
+                return new EmbedBuilder().WithColor(Color.Red).WithCurrentTimestamp().Build();
+            }
 
-        if (typeOfTransaction.Equals(TransactionType.PaymentForService))
+            if (typeOfTransaction.Equals(TransactionType.PaymentForService))
+            {
+                var newBalance = user.Balance - amount;
+                await _user.TransactWithBalance(user, newBalance!);
+                return new EmbedBuilder().WithTitle("Service Paid.").WithDescription($"You have paid for a service.")
+                    .WithColor(Color.Red).WithCurrentTimestamp().Build();
+            }
+        }
+        else if (purchaseType == PurchaseType.Tokens)
         {
-            var newBalance = user.Balance - balance;
-            await _user.Transact(user, newBalance);
-            return new EmbedBuilder().WithTitle("Service Paid.").WithDescription($"You have paid for a service.")
-                .WithColor(Color.Red).WithCurrentTimestamp().Build();
+            if (typeOfTransaction == TransactionType.Deposit)
+            {
+                var newTokenBalance = user.GenerationTokens + amount;
+                await _user.TransactWithBalance(user, (decimal) newTokenBalance!); 
+                return new EmbedBuilder().WithTitle("Successful Deposit").WithDescription($"{amount} bloodstones has been credited into your account!\n" +
+                    $"You now have {user.GenerationTokens} Generation Tokens").WithColor(Color.Green).Build();
+            }
+            if (typeOfTransaction == TransactionType.PaymentForService)
+            {
+                var newTokenBalance = user.GenerationTokens - int.Parse(amount.ToString()!); //PurchaseType.Tokens also ensures there's no null value.
+                await _user.TransactWithTokens(user, (int)newTokenBalance!);
+                return new EmbedBuilder().WithTitle("Service Paid.").WithDescription($"You have paid with tokens.")
+                    .WithColor(Color.DarkGreen).WithCurrentTimestamp().Build();
+            }
         }
 
         throw new SystemException("Unhandled case");

@@ -229,7 +229,7 @@ public class SlashCommands
                         return;
                     }
 
-                    var embedbalance = await _userService.Transact(user!, TransactionType.Deposit, fundsToAdd);
+                    var embedbalance = await _userService.Transact(user!, TransactionType.Deposit, PurchaseType.Bloodstones, fundsToAdd);
 
                     await command.FollowupAsync(embed: embedbalance);
 
@@ -347,7 +347,8 @@ public class SlashCommands
                         return;
                     }
                     
-                    if (user!.Balance < 200)
+                    
+                    if (user!.HasSubscription == false && user.Balance < 200 && user.GenerationTokens == 0)
                     {
                         await command.FollowupAsync("You have no balance to generate a picture.");
                         return;
@@ -380,7 +381,25 @@ public class SlashCommands
                         
                         var generatedImageBytes0 = await _stableDiffusion.GenerateImage(userInput, width: width, height: height);
 
-                        await _userService.Transact(user, TransactionType.PaymentForService, 200);
+                        if (user.HasSubscription == false)
+                        {
+                            if (user.GenerationTokens > 0)
+                            {
+                                await _userService.Transact(user, TransactionType.PaymentForService, PurchaseType.Tokens, 1);
+                                Console.WriteLine($"Non Premium user: {user.Username} has created an image using paid tokens!");
+                            }
+                            else if (user.Balance > 200)
+                            {
+                                await _userService.Transact(user, TransactionType.PaymentForService, PurchaseType.Bloodstones, 200);
+                                Console.WriteLine($"Non Premium user: {user.Username} has created an image using bloodstones!");
+                            }
+                        }
+                        else
+                        {
+                            //Premium Members are not charged for now.
+                            Console.WriteLine($"Premium user: {user.Username} has created an image!");
+                        }
+
                         Console.WriteLine($"{user.Username} just created a picture in channel: {command.Channel} of guild: {command.GuildId}!");
                         
                         
@@ -399,9 +418,26 @@ public class SlashCommands
                         return;
                     }
 
-
+                    
                     var generatedImageBytes = await _stableDiffusion.GenerateImage(userInput, null, null);
-                    await _userService.Transact(user, TransactionType.PaymentForService, 200);
+                    if (user.HasSubscription == false)
+                    {
+                        if (user.GenerationTokens > 0)
+                        {
+                            await _userService.Transact(user, TransactionType.PaymentForService, PurchaseType.Tokens, 1);
+                            Console.WriteLine($"Non Premium user: {user.Username} has created an image using paid tokens!");
+                        }
+                        else if (user.Balance > 200)
+                        {
+                            await _userService.Transact(user, TransactionType.PaymentForService, PurchaseType.Bloodstones, 200);
+                            Console.WriteLine($"Non Premium user: {user.Username} has created an image using bloodstones!");
+                        }
+                    }
+                    else
+                    {
+                        //Premium Members are not charged for now.
+                        Console.WriteLine($"Premium user: {user.Username} has created an image!");
+                    }
                     Console.WriteLine($"{user.Username} just created a picture in channel: {command.Channel} of guild: {command.GuildId}!");
                     
                     var embed = new EmbedBuilder()

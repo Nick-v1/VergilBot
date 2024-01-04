@@ -59,7 +59,7 @@ public class DiceService : IDiceService
             payout = (double) bet * multiplier;
             var payoutAfterBet = payout - (double) bet;
             
-            await _userService.Transact(userReturned, TransactionType.WonBet, (decimal) payoutAfterBet);
+            await _userService.Transact(userReturned, TransactionType.WonBet, PurchaseType.Bloodstones, (decimal) payoutAfterBet);
             
             Console.WriteLine($"\n{user.Username}#{user.Discriminator} played with {bet} and won {payout} bloodstones with a multiplier of {multiplier:0.00}!");
             
@@ -71,7 +71,7 @@ public class DiceService : IDiceService
             return embed.Build();
         }
         
-        await _userService.Transact(userReturned, TransactionType.LostBet, bet);
+        await _userService.Transact(userReturned, TransactionType.LostBet, PurchaseType.Bloodstones, bet);
         
         Console.WriteLine($"\n{user.Username}#{user.Discriminator} lost the bet of {bet} bloostones. Potential multiplier: {multiplier:0.00}");
 
@@ -116,7 +116,7 @@ public class DiceService : IDiceService
             payout = (double) bet * multiplier;
             var payoutAfterBet = payout - (double) bet;
             
-            await _userService.Transact(userReturned, TransactionType.WonBet, (decimal) payoutAfterBet);
+            await _userService.Transact(userReturned, TransactionType.WonBet, PurchaseType.Bloodstones, (decimal) payoutAfterBet);
             
             Console.WriteLine($"\n{user.Username}#{user.Discriminator} played with {bet} and won {payout} bloodstones with a multiplier of {multiplier:0.00}!");
             
@@ -128,7 +128,7 @@ public class DiceService : IDiceService
             return embed.Build();
         }
         
-        await _userService.Transact(userReturned, TransactionType.LostBet, bet);
+        await _userService.Transact(userReturned, TransactionType.LostBet, PurchaseType.Bloodstones, bet);
         
         Console.WriteLine($"\n{user.Username}#{user.Discriminator} lost the bet of {bet} bloostones. Potential multiplier: {multiplier:0.00}");
 
