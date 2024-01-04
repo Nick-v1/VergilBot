@@ -43,6 +43,7 @@ public class UserService : IUserService
                 DiscordId = user.Id.ToString(),
                 Balance = 1000.5m,
                 HasSubscription = false,
+                GenerationTokens = 0,
             };
 
             await _user.Register(userModel);
@@ -117,8 +118,12 @@ public class UserService : IUserService
             return new EmbedBuilder().WithTitle(validation.Message).WithColor(Color.Red).WithFooter(user.Username, user.GetAvatarUrl()).Build();
         }
 
+        var premiumMemberStatus = returnedUser!.HasSubscription ? "Enabled" : "Disabled";
         var embed = new EmbedBuilder()
-            .WithAuthor($"Your balance is {returnedUser!.Balance:0.00} bloodstones.", user.GetAvatarUrl())
+            .WithAuthor(user.Username, user.GetAvatarUrl())
+            .WithDescription($"\ud83d\udc8e\ud83e\ude78**Balance: {returnedUser.Balance:0.00}**\n" +
+                             $"\u2b50\t**Premium Member: _{premiumMemberStatus}_**\n" +
+                             $"\ud83c\udf9f\t**Generation Tokens: {returnedUser.GenerationTokens}**")
             .WithColor(Color.DarkTeal)
             .Build();
         
