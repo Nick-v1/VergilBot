@@ -379,7 +379,7 @@ public class SlashCommands
                             return;
                         }
                         
-                        var generatedImageBytes0 = await _stableDiffusion.GenerateImage(userInput, width: width, height: height);
+                        var generatedImageBytes0 = await _stableDiffusion.GenerateImage(userInput, width: width, height: height, discordUser);
 
                         if (user.HasSubscription == false)
                         {
@@ -419,18 +419,18 @@ public class SlashCommands
                     }
 
                     
-                    var generatedImageBytes = await _stableDiffusion.GenerateImage(userInput, null, null);
+                    var generatedImageBytes = await _stableDiffusion.GenerateImage(userInput, null, null, discordUser);
                     if (user.HasSubscription == false)
                     {
                         if (user.GenerationTokens > 0)
                         {
                             await _userService.Transact(user, TransactionType.PaymentForService, PurchaseType.Tokens, 1);
-                            Console.WriteLine($"Non Premium user: {user.Username} has created an image using paid tokens!");
+                            Console.WriteLine($"Non Premium user: {user.Username} has created an image using paid {PurchaseType.Tokens}!");
                         }
                         else if (user.Balance > 200)
                         {
                             await _userService.Transact(user, TransactionType.PaymentForService, PurchaseType.Bloodstones, 200);
-                            Console.WriteLine($"Non Premium user: {user.Username} has created an image using bloodstones!");
+                            Console.WriteLine($"Non Premium user: {user.Username} has created an image using {PurchaseType.Bloodstones}!");
                         }
                     }
                     else
@@ -472,6 +472,8 @@ public class SlashCommands
                 try
                 {
                     await command.DeferAsync();
+                    
+                    var discordUser = command.User;
 
                     var userPrompt = command.Data.Options.ElementAt(0).Value.ToString();
 
@@ -482,7 +484,7 @@ public class SlashCommands
                     if (attachmentOption.Url.Contains(".png"))
                     {
 
-                        var generatedImageBytes = await _stableDiffusion.UseControlNet(userPrompt!, attachmentOption);
+                        var generatedImageBytes = await _stableDiffusion.UseControlNet(userPrompt!, attachmentOption, discordUser);
 
                         var embed = new EmbedBuilder()
                             .WithTitle($"Your image is ready (ControlNet)")
@@ -516,7 +518,7 @@ public class SlashCommands
                 try
                 {
                     await command.DeferAsync();
-
+                    var discordUser = command.User;
                     var userPrompt = command.Data.Options.ElementAt(0).Value.ToString();
                     var userImage = command.Data.Options.ElementAt(1).Value;
 
@@ -525,7 +527,21 @@ public class SlashCommands
                     if (attachmentOption.Url.Contains(".png") || attachmentOption.Url.Contains(".jpg") ||
                         attachmentOption.Url.Contains(".jpeg"))
                     {
-                        var generatedImageBytes = await _stableDiffusion.Img2Img(userPrompt, attachmentOption);
+                        var generatedImageBytes = await _stableDiffusion.Img2Img(userPrompt, attachmentOption, discordUser);
+                        
+                        if (generatedImageBytes is null)
+                        {
+                            var embedError = new EmbedBuilder()
+                                .WithTitle("Error Processing")
+                                .WithDescription("Your image is larger than 1000px height and/or width")
+                                .WithImageUrl("attachment://generated_image.png")
+                                .WithCurrentTimestamp()
+                                .WithColor(Color.DarkRed)
+                                .WithFooter($"{command.User.Username}", command.User.GetAvatarUrl())
+                                .Build();
+                            await command.FollowupAsync(embed: embedError);
+                            return;
+                        }
                         
                         var embed = new EmbedBuilder()
                             .WithTitle($"Your image is ready (Img2Img)")

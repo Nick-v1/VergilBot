@@ -10,18 +10,14 @@ namespace Vergil.Services.Modules;
 
 public interface IStableDiffusion
     {
-        Task<byte[]?> GenerateImage(string prompt, int? width, int? height);
-        Task<byte[]?> UseControlNet(string prompt, IAttachment userImage);
-        Task<byte[]> Img2Img(string prompt, IAttachment userImage);
+        Task<byte[]?> GenerateImage(string prompt, int? width, int? height, IUser user);
+        Task<byte[]?> UseControlNet(string prompt, IAttachment userImage, IUser user);
+        Task<byte[]?> Img2Img(string prompt, IAttachment userImage, IUser user);
     }
     
     public class StableDiffusion : IStableDiffusion
     {
-        private string _url;
-        private readonly int _steps;
         private readonly string _sampler;
-        private readonly int _width;
-        private readonly int _height;
         private readonly string _negativePrompt;
         private readonly string infoEndpoint;
         private readonly string txt2imgEndpoint;
@@ -30,15 +26,16 @@ public interface IStableDiffusion
 
         public StableDiffusion(IStableDiffusionValidator diffusionValidator)
         {
-            _url = "http://127.0.0.1:7860";
+            var url = "http://127.0.0.1:7860";
             _sampler = "DPM++ 2M Karras";
-            _negativePrompt = "lowres, bad anatomy, bad hands, text, error, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry";
-            infoEndpoint = $"{_url}/sdapi/v1/png-info";
-            txt2imgEndpoint = $"{_url}/sdapi/v1/txt2img";
-            img2imgEndpoint = $"{_url}/sdapi/v1/img2img";
+            _negativePrompt = "lowres, bad anatomy, bad hands, text, error, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry," +
+                              "easynegative, By bad artist -neg";
+            infoEndpoint = $"{url}/sdapi/v1/png-info";
+            txt2imgEndpoint = $"{url}/sdapi/v1/txt2img";
+            img2imgEndpoint = $"{url}/sdapi/v1/img2img";
             _validator = diffusionValidator;
         }
-        public async Task<byte[]?> GenerateImage(string prompt, int? width, int? height)
+        public async Task<byte[]?> GenerateImage(string prompt, int? width, int? height, IUser user)
         {
             
             try
@@ -47,12 +44,13 @@ public interface IStableDiffusion
                 {
                     { "prompt", $"{prompt}" },
                     { "steps", 28 },
-                    { "sampler_index", "Restart"},
-                    { "width", width ??= 576},
-                    { "height", height ??= 576},
-                    { "use_async", true},
+                    { "sampler_index", _sampler},
+                    { "width", width ?? 576},
+                    { "height", height ?? 576},
                     { "negative_prompt", _negativePrompt},
-                    { "cfg_scale", 7}
+                    { "cfg_scale", 6},
+                    { "do_not_save_samples", true},
+                    { "do_not_save_grid", true}
                 };
 
                 var overrideSettings = new Dictionary<string, object>
@@ -108,7 +106,8 @@ public interface IStableDiffusion
 
                     image.SetPropertyItem(property);
 
-                    var path = await SaveImageLocally(image, $"generated_image_{Path.GetRandomFileName()}.png");
+                    var path = await SaveImageLocally(image, $"generated_image_{Path.GetRandomFileName()}.png", user);
+                    Console.WriteLine($"(generation) Image Saved at: {path}");
 
                     
                     //_validator.ClassifyImage(path);
@@ -125,11 +124,11 @@ public interface IStableDiffusion
             }
         }
 
-        private async Task<string> SaveImageLocally(Image image, string fileName)
+        private async Task<string> SaveImageLocally(Image image, string fileName, IUser user)
         {
             try
             {
-                string folderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GeneratedImages");
+                string folderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @$"GeneratedImages\{user.Username}");
 
                 if (!Directory.Exists(folderPath))
                 {
@@ -143,8 +142,6 @@ public interface IStableDiffusion
                 byte[] imageBytes = (byte[])converter.ConvertTo(image, typeof(byte[]));
 
                 await File.WriteAllBytesAsync(filePath, imageBytes);
-
-                Console.WriteLine($"Image saved successfully at: {filePath}");
 
                 return filePath;
             }
@@ -193,7 +190,7 @@ public interface IStableDiffusion
         /// <param name="userImage"></param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public async Task<byte[]?> UseControlNet(string prompt, IAttachment userImage)
+        public async Task<byte[]?> UseControlNet(string prompt, IAttachment userImage, IUser user)
         {
             try
             {
@@ -267,9 +264,9 @@ public interface IStableDiffusion
 
                     byte[] imageStreamReturned = imageStream.ToArray();
 
-                    var path = await SaveImageLocally(image, $"generated_image_{Path.GetRandomFileName()}.png");
+                    var path = await SaveImageLocally(image, $"generated_image_{Path.GetRandomFileName()}.png", user);
 
-                    Console.WriteLine($"Image (ControlNet) Saved at: {path}");
+                    Console.WriteLine($"(ControlNet) Image Saved at: {path}");
 
                     return imageStreamReturned;
                 }
@@ -283,11 +280,18 @@ public interface IStableDiffusion
         }
 
 
-        public async Task<byte[]> Img2Img(string prompt, IAttachment userImage)
+        public async Task<byte[]?> Img2Img(string prompt, IAttachment userImage, IUser user)
         {
             try
             {
                 var imageUrl = userImage.Url;
+                var imageHeight = userImage.Height;
+                var imageWidth = userImage.Width;
+
+                if (imageHeight > 1000 || imageWidth > 1000)
+                {
+                    return null;
+                }
 
                 using var httpClient = new HttpClient();
                 var imageDownloaded = await httpClient.GetByteArrayAsync(imageUrl);
@@ -303,8 +307,8 @@ public interface IStableDiffusion
                     { "prompt", prompt },
                     { "steps", 28 },
                     { "sampler_index", _sampler },
-                    { "width", 600 },
-                    { "height", 600 },
+                    { "width", imageWidth },
+                    { "height", imageHeight },
                     { "negative_prompt", _negativePrompt},
                     { "cfg_scale", 7 }
                 };
@@ -346,8 +350,8 @@ public interface IStableDiffusion
 
                     image.SetPropertyItem(property);
 
-                    var path = await SaveImageLocally(image, $"generated_image_{Path.GetRandomFileName()}.png");
-                    Console.WriteLine($"Image (img2img) Saved at: {path}");
+                    var path = await SaveImageLocally(image, $"generated_image_{Path.GetRandomFileName()}.png", user);
+                    Console.WriteLine($"(img2img) Image Saved at: {path}");
 
                     return imageStreamReturned;
                 }
