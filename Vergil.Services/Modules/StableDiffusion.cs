@@ -27,9 +27,10 @@ public interface IStableDiffusion
         public StableDiffusion(IStableDiffusionValidator diffusionValidator)
         {
             var url = "http://127.0.0.1:7860";
-            _sampler = "DPM++ 2M Karras";
-            _negativePrompt = "lowres, bad anatomy, bad hands, text, error, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry," +
-                              "easynegative, By bad artist -neg";
+            _sampler = "Euler a";
+            _negativePrompt = "nsfw, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, " +
+                              "fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, " +
+                              "signature, watermark, username, blurry, artist name, rating: nsfw";
             infoEndpoint = $"{url}/sdapi/v1/png-info";
             txt2imgEndpoint = $"{url}/sdapi/v1/txt2img";
             img2imgEndpoint = $"{url}/sdapi/v1/img2img";
@@ -37,16 +38,15 @@ public interface IStableDiffusion
         }
         public async Task<byte[]?> GenerateImage(string prompt, int? width, int? height, IUser user)
         {
-            
             try
             {
                 var payload = new Dictionary<string, object>
                 {
-                    { "prompt", $"{prompt}" },
+                    { "prompt", $"{prompt}, rating: general, masterpiece, best quality" },
                     { "steps", 28 },
                     { "sampler_index", _sampler},
-                    { "width", width ?? 576},
-                    { "height", height ?? 576},
+                    { "width", width ?? 832},
+                    { "height", height ?? 1216},
                     { "negative_prompt", _negativePrompt},
                     { "cfg_scale", 6},
                     { "do_not_save_samples", true},
@@ -290,7 +290,21 @@ public interface IStableDiffusion
 
                 if (imageHeight > 1000 || imageWidth > 1000)
                 {
-                    return null;
+                    if (imageHeight > imageWidth)
+                    {
+                        imageHeight = 1152;
+                        imageWidth = 896;
+                    }
+                    else if (imageHeight < imageWidth)
+                    {
+                        imageHeight = 832;
+                        imageWidth = 1216;
+                    }
+                    else
+                    {
+                        imageHeight = 1024;
+                        imageWidth = 1024;
+                    }
                 }
 
                 using var httpClient = new HttpClient();
@@ -310,7 +324,8 @@ public interface IStableDiffusion
                     { "width", imageWidth },
                     { "height", imageHeight },
                     { "negative_prompt", _negativePrompt},
-                    { "cfg_scale", 7 }
+                    { "cfg_scale", 6 },
+                    { "resize_mode", 2}
                 };
 
                 var jsonPayload = JsonConvert.SerializeObject(payload);
