@@ -51,8 +51,8 @@ public class Program
             .AddSingleton<DiscordSocketClient>()
             .AddDbContext<VergilDbContext>(options => options.UseNpgsql(
                 configuration.GetConnectionString("DefaultConnection")), ServiceLifetime.Scoped)
-            .AddScoped<IUserRepository, UserRepository>()
-            .AddScoped<IUserService, UserService>()
+            .AddSingleton<IUserRepository, UserRepository>()
+            .AddSingleton<IUserService, UserService>()
             .AddScoped<SlashCommands>()
             .AddScoped<ChatGpt>()
             .AddScoped<CommandService>()

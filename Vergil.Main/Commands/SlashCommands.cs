@@ -24,6 +24,7 @@ public class SlashCommands
         private readonly IStableDiffusionValidator _stableDiffusionValidator;
         private readonly IUserValidationService _userValidation;
         private readonly IStripeService _stripeService;
+        private static SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
 
         public SlashCommands(DiscordSocketClient client, CommandService commands, ChatGpt chatGptInstance, 
             IUserService userService, IDiceService diceService, IStableDiffusion stableDiffusion, 
@@ -334,9 +335,8 @@ public class SlashCommands
             {
                 try
                 {
-                    
                     await command.DeferAsync();
-
+                     
                     var discordUser = command.User;
 
                     var (userValidation, user) = await _userValidation.ValidateUserExistence(discordUser);
@@ -347,111 +347,122 @@ public class SlashCommands
                         return;
                     }
                     
-                    
                     if (user!.HasSubscription == false && user.Balance < 200 && user.GenerationTokens == 0)
                     {
                         await command.FollowupAsync("You have no balance to generate a picture.");
                         return;
                     }
 
-                    var userInput = command.Data.Options.ElementAt(0).Value.ToString();
-
-                    var optionsCount = command.Data.Options.Count;
-
-                    if (optionsCount != 1)
+                    
+                    await semaphore.WaitAsync();
+                    try
                     {
-                        if (optionsCount != 3)
-                        {
-                            await command.FollowupAsync("Error: Wrong number of parameters.");
-                            return;
-                        }
+                        Console.WriteLine($"{discordUser.Username} is generating an image");
                         
-                        var width = int.Parse(command.Data.Options.ElementAt(1).Value.ToString());
-                        var height = int.Parse(command.Data.Options.ElementAt(2).Value.ToString());
-                        
-                        var validation = _stableDiffusionValidator.ValidateHeightAndWidth(width, height);
-                        
-                        if (!validation.Success)
-                        {
-                            var embed1 = new EmbedBuilder().WithColor(Color.DarkRed).WithTitle(validation.Message).Build();
-                            
-                            await command.FollowupAsync(embed: embed1);
-                            return;
-                        }
-                        
-                        var generatedImageBytes0 = await _stableDiffusion.GenerateImage(userInput, width: width, height: height, discordUser);
+                        var userInput = command.Data.Options.ElementAt(0).Value.ToString();
 
+                        var optionsCount = command.Data.Options.Count;
+
+                        if (optionsCount != 1)
+                        {
+                            if (optionsCount != 3)
+                            {
+                                await command.FollowupAsync("Error: Wrong number of parameters.");
+                                return;
+                            }
+                        
+                            var width = int.Parse(command.Data.Options.ElementAt(1).Value.ToString());
+                            var height = int.Parse(command.Data.Options.ElementAt(2).Value.ToString());
+                            
+                            var validation = _stableDiffusionValidator.ValidateHeightAndWidth(width, height);
+                        
+                            if (!validation.Success)
+                            {
+                                var embed1 = new EmbedBuilder().WithColor(Color.DarkRed).WithTitle(validation.Message).Build();
+                                
+                                await command.FollowupAsync(embed: embed1);
+                                return;
+                            }
+                        
+                            var generatedImageBytes0 = await _stableDiffusion.GenerateImage(userInput, width: width, height: height, discordUser);
+
+                            if (user.HasSubscription == false)
+                            {
+                                if (user.GenerationTokens > 0)
+                                {
+                                    await _userService.Transact(user, TransactionType.PaymentForService, PurchaseType.Tokens, 1);
+                                    Console.WriteLine($"Non Premium user: {discordUser.Username} has created an image using paid tokens!");
+                                }
+                                else if (user.Balance > 200)
+                                {
+                                    await _userService.Transact(user, TransactionType.PaymentForService, PurchaseType.Bloodstones, 200);
+                                    Console.WriteLine($"Non Premium user: {discordUser.Username} has created an image using bloodstones!");
+                                }
+                            }
+                            else
+                            {
+                                //Premium Members are not charged for now.
+                                Console.WriteLine($"Premium user: {discordUser.Username} has created an image!");
+                            }
+
+                            Console.WriteLine($"{discordUser.Username} just created a picture in channel: {command.Channel} of guild: {command.GuildId}!");
+                        
+                        
+                            var embed0 = new EmbedBuilder()
+                                .WithTitle("Your image is ready")
+                                .WithDescription(command.Data.Options.First().Value.ToString())
+                                .WithImageUrl("attachment://generated_image.png")
+                                .WithCurrentTimestamp()
+                                .WithFooter($"{discordUser.Username}", command.User.GetAvatarUrl())
+                                .Build();
+
+                            var memoryStream0 = new MemoryStream(generatedImageBytes0);
+
+                            await command.FollowupWithFileAsync(memoryStream0, "generated_image.png", embed: embed0);
+                            
+                            return;
+                        }
+
+                    
+                        var generatedImageBytes = await _stableDiffusion.GenerateImage(userInput, null, null, discordUser);
                         if (user.HasSubscription == false)
                         {
                             if (user.GenerationTokens > 0)
                             {
                                 await _userService.Transact(user, TransactionType.PaymentForService, PurchaseType.Tokens, 1);
-                                Console.WriteLine($"Non Premium user: {user.Username} has created an image using paid tokens!");
+                                Console.WriteLine($"Non Premium user: {discordUser.Username} has created an image using paid {PurchaseType.Tokens}!");
                             }
                             else if (user.Balance > 200)
                             {
                                 await _userService.Transact(user, TransactionType.PaymentForService, PurchaseType.Bloodstones, 200);
-                                Console.WriteLine($"Non Premium user: {user.Username} has created an image using bloodstones!");
+                                Console.WriteLine($"Non Premium user: {discordUser.Username} has created an image using {PurchaseType.Bloodstones}!");
                             }
                         }
                         else
                         {
                             //Premium Members are not charged for now.
-                            Console.WriteLine($"Premium user: {user.Username} has created an image!");
+                            Console.WriteLine($"Premium user: {discordUser.Username} has created an image!");
                         }
-
-                        Console.WriteLine($"{user.Username} just created a picture in channel: {command.Channel} of guild: {command.GuildId}!");
-                        
-                        
-                        var embed0 = new EmbedBuilder()
+                        Console.WriteLine($"{discordUser.Username} just created a picture in channel: {command.Channel} of guild: {command.GuildId}!");
+                    
+                        var embed = new EmbedBuilder()
                             .WithTitle("Your image is ready")
                             .WithDescription(command.Data.Options.First().Value.ToString())
                             .WithImageUrl("attachment://generated_image.png")
                             .WithCurrentTimestamp()
-                            .WithFooter($"{command.User.Username}", command.User.GetAvatarUrl())
+                            .WithFooter($"{discordUser.Username}", command.User.GetAvatarUrl())
                             .Build();
 
-                        var memoryStream0 = new MemoryStream(generatedImageBytes0);
+                        var memoryStream = new MemoryStream(generatedImageBytes);
 
-                        await command.FollowupWithFileAsync(memoryStream0, "generated_image.png", embed: embed0);
-                        
+                        await command.FollowupWithFileAsync(memoryStream, "generated_image.png", embed: embed);
                         return;
                     }
-
                     
-                    var generatedImageBytes = await _stableDiffusion.GenerateImage(userInput, null, null, discordUser);
-                    if (user.HasSubscription == false)
+                    finally
                     {
-                        if (user.GenerationTokens > 0)
-                        {
-                            await _userService.Transact(user, TransactionType.PaymentForService, PurchaseType.Tokens, 1);
-                            Console.WriteLine($"Non Premium user: {user.Username} has created an image using paid {PurchaseType.Tokens}!");
-                        }
-                        else if (user.Balance > 200)
-                        {
-                            await _userService.Transact(user, TransactionType.PaymentForService, PurchaseType.Bloodstones, 200);
-                            Console.WriteLine($"Non Premium user: {user.Username} has created an image using {PurchaseType.Bloodstones}!");
-                        }
+                        semaphore.Release();
                     }
-                    else
-                    {
-                        //Premium Members are not charged for now.
-                        Console.WriteLine($"Premium user: {user.Username} has created an image!");
-                    }
-                    Console.WriteLine($"{user.Username} just created a picture in channel: {command.Channel} of guild: {command.GuildId}!");
-                    
-                    var embed = new EmbedBuilder()
-                        .WithTitle("Your image is ready")
-                        .WithDescription(command.Data.Options.First().Value.ToString())
-                        .WithImageUrl("attachment://generated_image.png")
-                        .WithCurrentTimestamp()
-                        .WithFooter($"{command.User.Username}", command.User.GetAvatarUrl())
-                        .Build();
-
-                    var memoryStream = new MemoryStream(generatedImageBytes);
-
-                    await command.FollowupWithFileAsync(memoryStream, "generated_image.png", embed: embed);
-                    return;
                 }
                 catch (Exception ex)
                 {

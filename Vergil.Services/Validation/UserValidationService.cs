@@ -1,46 +1,28 @@
 ﻿using Discord;
 using Vergil.Data.Models;
 using Vergil.Services.Enums;
-using Vergil.Services.Repositories;
+using Vergil.Services.Services;
 
 namespace Vergil.Services.Validation;
 
 public interface IUserValidationService
 {
-    Task<ValidationReport> ValidateForRegistration(IUser discordUser);
     Task<(ValidationReport, User?)> ValidateUserExistence(IUser discordUser);
 }
 
 public class UserValidationService : IUserValidationService
 {
-    private readonly IUserRepository _repo;
+    private readonly IUserService _userService;
 
-    public UserValidationService(IUserRepository repo)
+    public UserValidationService(IUserService userService)
     {
-        _repo = repo;
-    }
-
-    public async Task<ValidationReport> ValidateForRegistration(IUser discordUser)
-    {
-        var user = await _repo.GetUserById(discordUser.Id.ToString());
-        var report = new ValidationReport();
-        
-        if (user is not null)
-        {
-            report.Success = false;
-            report.Message = "User is already registered!";
-            return report;
-        }
-
-        report.Success = true;
-        return report;
+        _userService = userService;
     }
 
     public async Task<(ValidationReport, User?)> ValidateUserExistence(IUser discordUser)
     {
-        var user = await _repo.GetUserById(discordUser.Id.ToString());
+        var user = await _userService.GetUserAsync(discordUser);
         var report = new ValidationReport();
-        
         
         if (user is null)
         {

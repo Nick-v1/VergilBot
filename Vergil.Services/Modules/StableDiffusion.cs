@@ -13,7 +13,6 @@ public interface IStableDiffusion
     Task<byte[]?> GenerateImage(string prompt, int? width, int? height, IUser user);
     Task<byte[]?> UseControlNet(string prompt, IAttachment userImage, IUser user);
     Task<byte[]?> Img2Img(string prompt, IAttachment userImage, IUser user);
-    Task<bool> IsApiAvailable();
 }
     
 public class StableDiffusion : IStableDiffusion
@@ -70,6 +69,7 @@ public class StableDiffusion : IStableDiffusion
             }
 
             using var httpClient = new HttpClient();
+            httpClient.Timeout = TimeSpan.FromMinutes(10);
             var jsonPayload = JsonConvert.SerializeObject(payload);
             var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
             var response = await httpClient.PostAsync(txt2imgEndpoint, content);
@@ -379,21 +379,6 @@ public class StableDiffusion : IStableDiffusion
         {
             throw new Exception(e.Message);
         }
-    }
-
-    public async Task<bool> IsApiAvailable()
-    {
-        HttpClient client = new HttpClient();
-        var progressResponse = await client.GetAsync("http://127.0.0.1:7860/sdapi/v1/progress?skip_current_image=false");
-        var progress = await progressResponse.Content.ReadAsStringAsync();
-        dynamic data = JsonConvert.DeserializeObject(progress);
-
-        if (data.state.job_count == 0)
-        {
-            return true;
-        }
-
-        return false;
     }
     
 }
