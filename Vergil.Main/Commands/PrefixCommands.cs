@@ -18,12 +18,47 @@ public class PrefixCommands : ModuleBase<SocketCommandContext>
     private readonly IUserValidationService _validation;
     
     private readonly ISlotRepository _slot;
+    private readonly DiscordSocketClient _client;
 
-    public PrefixCommands(IUserService userService, IUserValidationService userValidationService, ISlotRepository slotRepository)
+    public PrefixCommands(IUserService userService, IUserValidationService userValidationService, ISlotRepository slotRepository, DiscordSocketClient client)
     {
         _userService = userService;
         _validation = userValidationService;
         _slot = slotRepository;
+        _client = client;
+    }
+    
+    [RequireOwner]
+    [Command("showguilds")]
+    public async Task ShowBotJoinedGuilds()
+    {
+        var botGuilds = _client.Guilds;
+        var currentGuild = Context.Guild; 
+        var guildNames = botGuilds.Select(guild => guild.Equals(currentGuild) ? guild.Name + " \u2b50" : guild.Name).ToList();
+        
+        var embedBuilder = new EmbedBuilder()
+            .WithTitle("List of Guilds")
+            .WithDescription(string.Join("\n", guildNames))
+            .WithColor(Color.Blue);
+        
+        await ReplyAsync(embed: embedBuilder.Build());
+    }
+
+    [RequireOwner]
+    [Command("leaveguild")]
+    public async Task LeaveGuild(string guildName)
+    {
+        var botGuilds = _client.Guilds;
+        var targetedGuild = botGuilds.FirstOrDefault(g => g.Name == guildName);
+        
+        if (targetedGuild is null)
+        {
+            await ReplyAsync("Bot not in the specified guild");
+            return;
+        }
+
+        await targetedGuild.LeaveAsync();
+        await ReplyAsync($"Left the guild {targetedGuild.Name}");
     }
 
     [Command("slots")]
@@ -626,5 +661,5 @@ public class PrefixCommands : ModuleBase<SocketCommandContext>
                 
                 
             } 
-        } 
+        }
     }
