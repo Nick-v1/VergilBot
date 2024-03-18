@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vergil.Data", "Vergil.Data\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vergil.Services", "Vergil.Services\Vergil.Services.csproj", "{9D02585E-3DDC-4574-A0CB-CEA9C16D1154}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vergil.Api", "Vergil.Api\Vergil.Api.csproj", "{675A453D-9C42-4587-8E56-BABA2F0AB141}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{9D02585E-3DDC-4574-A0CB-CEA9C16D1154}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9D02585E-3DDC-4574-A0CB-CEA9C16D1154}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9D02585E-3DDC-4574-A0CB-CEA9C16D1154}.Release|Any CPU.Build.0 = Release|Any CPU
+		{675A453D-9C42-4587-8E56-BABA2F0AB141}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{675A453D-9C42-4587-8E56-BABA2F0AB141}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{675A453D-9C42-4587-8E56-BABA2F0AB141}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{675A453D-9C42-4587-8E56-BABA2F0AB141}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
