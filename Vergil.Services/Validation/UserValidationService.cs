@@ -21,7 +21,7 @@ public class UserValidationService : IUserValidationService
 
     public async Task<(ValidationReport, User?)> ValidateUserExistence(IUser discordUser)
     {
-        var user = await _userService.GetUserAsync(discordUser);
+        var user = await _userService.GetUserAsync(discordUser.Id.ToString());
         var report = new ValidationReport();
         
         if (user is null)

@@ -13,13 +13,13 @@ public interface IUserService
     Task<Embed> Transact(User user, TransactionType typeOfTransaction, PurchaseType purchaseType, decimal amount);
     Task<decimal> GetBalanceNormal(IUser user);
     Task<Embed> RegisterEmail(User user, string email);
-    Task<User?> GetUserAsync(IUser discordUser);
+    Task<User?> GetUserAsync(string discordId);
 }
 
 public class UserService : IUserService
 {
     private readonly IUserRepository _user;
-    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
+    private static SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
     public UserService(IUserRepository userRepository)
     {
         _user = userRepository;
@@ -27,16 +27,18 @@ public class UserService : IUserService
 
     public async Task<Embed> Register(IUser user)
     {
+        
+        await _semaphore.WaitAsync();
         try
         {
-            await _semaphore.WaitAsync();
-            var validation = await ValidateForRegistration(user);
+            var returnedUser = await _user.GetUserById(user.Id.ToString());
 
-            if (!validation.Success)
+            if (returnedUser is not null)
             {
-                return new EmbedBuilder().WithTitle(validation.Message).WithFooter(user.Username, user.GetAvatarUrl()).WithCurrentTimestamp().WithColor(Color.Red).Build();
+                return new EmbedBuilder().WithTitle("Already Registered").WithFooter(user.Username, user.GetAvatarUrl())
+                    .WithCurrentTimestamp().WithColor(Color.Red).Build();
             }
-            
+
             var userModel = new User
             {
                 Username = user.Username,
@@ -47,7 +49,6 @@ public class UserService : IUserService
             };
 
             await _user.Register(userModel);
-            _semaphore.Release();
 
             var emb = new EmbedBuilder()
                 .WithTitle("Successfully Registered")
@@ -66,75 +67,93 @@ public class UserService : IUserService
         {
             return new EmbedBuilder().WithTitle(e.Message).Build();
         }
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 
     public async Task<Embed> Transact(User user, TransactionType typeOfTransaction, PurchaseType purchaseType, decimal amount)
     {
         await _semaphore.WaitAsync();
-        if (purchaseType == PurchaseType.Bloodstones)
+        try
         {
-            if (typeOfTransaction.Equals(TransactionType.Deposit))
+            if (purchaseType == PurchaseType.Bloodstones)
             {
-                var newBalance = user.Balance + amount;
-                await _user.TransactWithBalance(user, newBalance!); //PurchaseType.Bloodstones ensures that there's no null value.
-                _semaphore.Release();
-                return new EmbedBuilder().WithTitle("Successful Deposit").WithDescription($"{amount} bloodstones has been credited into your account!\n" +
-                    $"You now have {user.Balance} bloodstones").WithColor(Color.Green).Build();
+                if (typeOfTransaction.Equals(TransactionType.Deposit))
+                {
+                    var newBalance = user.Balance + amount;
+                    await _user.TransactWithBalance(user,
+                        newBalance!); //PurchaseType.Bloodstones ensures that there's no null value.
+                    
+                    return new EmbedBuilder().WithTitle("Successful Deposit").WithDescription(
+                        $"{amount} bloodstones has been credited into your account!\n" +
+                        $"You now have {user.Balance} bloodstones").WithColor(Color.Green).Build();
+                }
+
+                if (typeOfTransaction.Equals(TransactionType.Withdrawal))
+                {
+                    throw new NotImplementedException();
+                }
+
+                if (typeOfTransaction.Equals(TransactionType.WonBet))
+                {
+                    var newBalance = user.Balance + amount;
+                    await _user.TransactWithBalance(user, newBalance!);
+                    
+                    return new EmbedBuilder()
+                        .WithColor(Color.Green).WithCurrentTimestamp().Build();
+                }
+
+                if (typeOfTransaction.Equals(TransactionType.LostBet))
+                {
+                    var newBalance = user.Balance - amount;
+                    await _user.TransactWithBalance(user, newBalance!);
+                    
+                    return new EmbedBuilder().WithColor(Color.Red).WithCurrentTimestamp().Build();
+                }
+
+                if (typeOfTransaction.Equals(TransactionType.PaymentForService))
+                {
+                    var newBalance = user.Balance - amount;
+                    await _user.TransactWithBalance(user, newBalance!);
+                    
+                    return new EmbedBuilder().WithTitle("Service Paid.")
+                        .WithDescription($"You have paid for a service.")
+                        .WithColor(Color.Red).WithCurrentTimestamp().Build();
+                }
             }
-        
-            if (typeOfTransaction.Equals(TransactionType.Withdrawal))
+            else if (purchaseType == PurchaseType.Tokens)
             {
-                throw new NotImplementedException();
-            }
-        
-            if (typeOfTransaction.Equals(TransactionType.WonBet))
-            {
-                var newBalance = user.Balance + amount;
-                await _user.TransactWithBalance(user, newBalance!);
-                _semaphore.Release();
-                return new EmbedBuilder()
-                    .WithColor(Color.Green).WithCurrentTimestamp().Build();
+                if (typeOfTransaction == TransactionType.Deposit)
+                {
+                    var newTokenBalance = user.GenerationTokens + amount;
+                    await _user.TransactWithBalance(user, (decimal)newTokenBalance!);
+                    
+                    return new EmbedBuilder().WithTitle("Successful Deposit").WithDescription(
+                        $"{amount} bloodstones has been credited into your account!\n" +
+                        $"You now have {user.GenerationTokens} Generation Tokens").WithColor(Color.Green).Build();
+                }
+
+                if (typeOfTransaction == TransactionType.PaymentForService)
+                {
+                    var newTokenBalance =
+                        user.GenerationTokens -
+                        int.Parse(amount.ToString()!); //PurchaseType.Tokens also ensures there's no null value.
+                    await _user.TransactWithTokens(user, (int)newTokenBalance!);
+                    
+                    return new EmbedBuilder().WithTitle("Service Paid.").WithDescription($"You have paid with tokens.")
+                        .WithColor(Color.DarkGreen).WithCurrentTimestamp().Build();
+                }
             }
 
-            if (typeOfTransaction.Equals(TransactionType.LostBet))
-            {
-                var newBalance = user.Balance - amount;
-                await _user.TransactWithBalance(user, newBalance!);
-                _semaphore.Release();
-                return new EmbedBuilder().WithColor(Color.Red).WithCurrentTimestamp().Build();
-            }
-
-            if (typeOfTransaction.Equals(TransactionType.PaymentForService))
-            {
-                var newBalance = user.Balance - amount;
-                await _user.TransactWithBalance(user, newBalance!);
-                _semaphore.Release();
-                return new EmbedBuilder().WithTitle("Service Paid.").WithDescription($"You have paid for a service.")
-                    .WithColor(Color.Red).WithCurrentTimestamp().Build();
-            }
+            
+            throw new SystemException("Unhandled case");
         }
-        else if (purchaseType == PurchaseType.Tokens)
+        finally
         {
-            if (typeOfTransaction == TransactionType.Deposit)
-            {
-                var newTokenBalance = user.GenerationTokens + amount;
-                await _user.TransactWithBalance(user, (decimal) newTokenBalance!); 
-                _semaphore.Release();
-                return new EmbedBuilder().WithTitle("Successful Deposit").WithDescription($"{amount} bloodstones has been credited into your account!\n" +
-                    $"You now have {user.GenerationTokens} Generation Tokens").WithColor(Color.Green).Build();
-            }
-            if (typeOfTransaction == TransactionType.PaymentForService)
-            {
-                var newTokenBalance = user.GenerationTokens - int.Parse(amount.ToString()!); //PurchaseType.Tokens also ensures there's no null value.
-                await _user.TransactWithTokens(user, (int)newTokenBalance!);
-                _semaphore.Release();
-                return new EmbedBuilder().WithTitle("Service Paid.").WithDescription($"You have paid with tokens.")
-                    .WithColor(Color.DarkGreen).WithCurrentTimestamp().Build();
-            }
+            _semaphore.Release();
         }
-
-        _semaphore.Release();
-        throw new SystemException("Unhandled case");
     }
 
     public async Task<Embed> GetBalance(IUser user)
@@ -161,33 +180,46 @@ public class UserService : IUserService
     public async Task<Embed> RegisterEmail(User user, string email)
     {
         await _semaphore.WaitAsync();
-        await _user.RegisterEmail(user, email);
-        _semaphore.Release();
-        var embed = new EmbedBuilder()
-            .WithAuthor($"Your email has been registered")
-            .WithColor(Color.DarkTeal)
-            .Build();
+        try
+        {
+            await _user.RegisterEmail(user, email);
+            var embed = new EmbedBuilder()
+                .WithAuthor($"Your email has been registered")
+                .WithColor(Color.DarkTeal)
+                .Build();
+            
+            return embed;
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
         
-        return embed;
     }
 
-    public async Task<User?> GetUserAsync(IUser discordUser)
+    public async Task<User?> GetUserAsync(string discordId)
     {
         await _semaphore.WaitAsync();
-        var user = await _user.GetUserById(discordUser.Id.ToString());
-        _semaphore.Release();
-        return user;
+        try
+        {
+            return await _user.GetUserById(discordId);
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
     }
-    
+
+
     public async Task<decimal> GetBalanceNormal(IUser user)
     {
-        var userReturned = await GetUserAsync(user);
+        var userReturned = await _user.GetUserById(user.Id.ToString());
         return userReturned.Balance;
     }
     
     private async Task<(ValidationReport, User?)> ValidateUserExistence(IUser discordUser)
     {
-        var user = await GetUserAsync(discordUser);
+        var user = await _user.GetUserById(discordUser.Id.ToString());
         var report = new ValidationReport();
         
         if (user is null)
@@ -200,22 +232,6 @@ public class UserService : IUserService
 
         report.Success = true;
         return (report, user);
-    }
-    
-    private async Task<ValidationReport> ValidateForRegistration(IUser discordUser)
-    {
-        var report = new ValidationReport();
-        var user = await GetUserAsync(discordUser);
-
-        if (user is not null)
-        {
-            report.Message = "You are already registered!";
-            report.Success = false;
-            return report;
-        }
-
-        report.Success = true;
-        return report;
     }
     
 }

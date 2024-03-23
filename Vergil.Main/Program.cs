@@ -25,7 +25,8 @@ public class Program
     private CommandService _commands;
     private DiscordSocketClient _client;
     private SlashCommands _slashCommands;
-    
+    private IFactoryInteractions factoryInteractions;
+
     public static async Task Main(string[] args) 
     {
         await new Program().MainAsync(); 
@@ -51,8 +52,8 @@ public class Program
             .AddSingleton<DiscordSocketClient>()
             .AddDbContext<VergilDbContext>(options => options.UseNpgsql(
                 configuration.GetConnectionString("DefaultConnection")), ServiceLifetime.Scoped)
-            .AddSingleton<IUserRepository, UserRepository>()
-            .AddSingleton<IUserService, UserService>()
+            .AddScoped<IUserRepository, UserRepository>()
+            .AddScoped<IUserService, UserService>()
             .AddScoped<SlashCommands>()
             .AddScoped<ChatGpt>()
             .AddScoped<CommandService>()
@@ -61,7 +62,8 @@ public class Program
             .AddScoped<IStableDiffusion, StableDiffusion>()
             .AddScoped<IStableDiffusionValidator, StableDiffusionValidator>()
             .AddScoped<ISlotRepository, SlotRepository>()
-            .AddScoped<IStripeService, StripeService>();
+            .AddScoped<IStripeService, StripeService>()
+            .AddSingleton<IFactoryInteractions, FactoryInteractions>();
 
         StripeConfiguration.ApiKey = configuration.GetValue<string>("StripeSettings:SecretKey");
         
@@ -72,6 +74,8 @@ public class Program
         _client = _services.GetRequiredService<DiscordSocketClient>();
 
         _slashCommands = _services.GetRequiredService<SlashCommands>();
+        
+        factoryInteractions = _services.GetRequiredService<IFactoryInteractions>();
 
         //use builder to get discord token from .net secrets.
         string token = configuration.GetSection("DISCORD_TOKEN").Value;
@@ -101,15 +105,19 @@ public class Program
 
         _client.Ready += async () => await _slashCommands.InstallSlashCommandsAsync(); //slashCommands.cs handles commands
         
+        
+        
         _client.SlashCommandExecuted += async (command) =>
         {
             await Task.Run(() =>
             {
-                ThreadPool.QueueUserWorkItem(_ =>
+                ThreadPool.QueueUserWorkItem(async _ =>
                 {
-                    _slashCommands.SlashCommandHandler(command);
+                    var instance = factoryInteractions.GetNewSlashCommandsInstance();
+                    await instance.SlashCommandHandler(command);
                 });
             });
+            
         };
 
     }

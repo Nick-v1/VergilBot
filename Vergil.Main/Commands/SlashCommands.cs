@@ -178,15 +178,18 @@ public class SlashCommands
             {
                 try
                 {
+                    await command.DeferAsync();
                     IUser user = command.User;
 
                     var embedReply = await _userService.Register(user);
 
-                    await command.RespondAsync(embed: embedReply);
+                    await command.FollowupAsync(embed: embedReply);
+                    return;
                 }
                 catch (Exception e)
                 {
-                    await command.RespondAsync(embed: new EmbedBuilder().WithDescription(e.Message).Build());
+                    await command.FollowupAsync(embed: new EmbedBuilder().WithDescription(e.Message).Build());
+                    return;
                 }
             }
             
@@ -696,7 +699,6 @@ public class SlashCommands
 
         private async Task ClientReaderSlashCommands()
         {
-            var guild = _client.GetGuild(605772836660969493); //my guild
 
             var globalCommand = new SlashCommandBuilder();
             globalCommand.WithName("quote");
@@ -714,10 +716,6 @@ public class SlashCommands
             var globalCommandBanYourself = new SlashCommandBuilder()
                 .WithName("banmepls")
                 .WithDescription("Use this to ban yourself from a server. Removes the ban shortly after.");
-
-            var localCommandLeledometro = new SlashCommandBuilder()
-                .WithName("leledometro")
-                .WithDescription("Shows the remaining days of your military service");
 
             var globalReddit = new SlashCommandBuilder()
                 .WithName("reddit")
@@ -817,25 +815,21 @@ public class SlashCommands
                 .WithDescription("Register your email to the bot.")
                 .AddOption("email", ApplicationCommandOptionType.String, "The email you want to use", true);
 
+            var slashCommandsInBuilder = new List<SlashCommandBuilder>();
+            
+            slashCommandsInBuilder.AddRange(new[]
+            {
+                globalCommand, globalCommand1, globalCommandHelp, globalCommandBanYourself, globalReddit, deposit,
+                registerCommand, diceCommand, diceCommand2, balanceCommand, chatGpt, imageGeneration, controlNetGeneration,
+                imageGenerationImg2Img, purchaseCommand, registerEmailCommand
+            });
+
             try
             {
-                await _client.CreateGlobalApplicationCommandAsync(globalCommand.Build());
-                await _client.CreateGlobalApplicationCommandAsync(globalCommand1.Build());
-                await _client.CreateGlobalApplicationCommandAsync(globalCommandHelp.Build());
-                await _client.CreateGlobalApplicationCommandAsync(globalCommandBanYourself.Build());
-                //await guild.CreateApplicationCommandAsync(localCommandLeledometro.Build());
-                await _client.CreateGlobalApplicationCommandAsync(globalReddit.Build());
-                await _client.CreateGlobalApplicationCommandAsync(deposit.Build());
-                await _client.CreateGlobalApplicationCommandAsync(registerCommand.Build());
-                await _client.CreateGlobalApplicationCommandAsync(diceCommand.Build());
-                await _client.CreateGlobalApplicationCommandAsync(diceCommand2.Build());
-                await _client.CreateGlobalApplicationCommandAsync(balanceCommand.Build());
-                await _client.CreateGlobalApplicationCommandAsync(chatGpt.Build());
-                await _client.CreateGlobalApplicationCommandAsync(imageGeneration.Build());
-                await _client.CreateGlobalApplicationCommandAsync(controlNetGeneration.Build());
-                await _client.CreateGlobalApplicationCommandAsync(imageGenerationImg2Img.Build());
-                await _client.CreateGlobalApplicationCommandAsync(purchaseCommand.Build());
-                await _client.CreateGlobalApplicationCommandAsync(registerEmailCommand.Build());
+                foreach (var command in slashCommandsInBuilder)
+                {
+                    await _client.CreateGlobalApplicationCommandAsync(command.Build());
+                }
             }
             catch (HttpException e)
             {
