@@ -1,5 +1,5 @@
-# VergilBot
-
+# VergilBot 
+#### ![Technologies used](https://skillicons.dev/icons?i=dotnet,cs,discord,bots,ai,rider,postgres)
 _Preview of a larger project_. (Does not contain latest updates)
 
 _Feature tests Bot_
